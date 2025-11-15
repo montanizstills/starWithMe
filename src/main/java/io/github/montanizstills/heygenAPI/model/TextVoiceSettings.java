@@ -2,18 +2,16 @@ package io.github.montanizstills.heygenAPI.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.montanizstills.heygenAPI.model.interfaces.VoiceSettings;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
-// ==================== Text Voice Settings ====================
-@Setter
 @Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
-class TextVoiceSettings implements VoiceSettings {
-    // Getters and Setters
+public class TextVoiceSettings implements VoiceSettings {
     @JsonProperty("type")
     private String type = "text";
 
@@ -38,22 +36,4 @@ class TextVoiceSettings implements VoiceSettings {
     @JsonProperty("elevenlabs_settings")
     private ElevenLabsSettings elevenLabsSettings;
 
-    // Constructors
-    public TextVoiceSettings() {
-    }
-
-    public TextVoiceSettings(String voiceId, String inputText) {
-        this.voiceId = voiceId;
-        this.inputText = inputText;
-    }
-
-    @Override
-    public String toString() {
-        try {
-            ObjectMapper mapper = new ObjectMapper();
-            return mapper.writeValueAsString(this);
-        } catch (JsonProcessingException e) {
-            return "Error converting to JSON: " + e.getMessage();
-        }
-    }
 }

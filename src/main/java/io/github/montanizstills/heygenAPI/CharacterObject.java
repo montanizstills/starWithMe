@@ -1,5 +1,7 @@
 package io.github.montanizstills.heygenAPI;
 
+import io.github.montanizstills.heygenAPI.model.Offset;
+
 public class CharacterObject {
     private String type;
     private String avatarId;
@@ -7,7 +9,7 @@ public class CharacterObject {
     private Double scale;
     private String avatarStyle;
     private String talkingPhotoStyle;
-    private String offset;
+    private Offset offset;
     private String talkingStyle;
     private String expression;
     private String superResolution;
