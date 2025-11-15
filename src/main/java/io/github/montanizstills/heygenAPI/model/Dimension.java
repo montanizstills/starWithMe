@@ -11,9 +11,9 @@ import lombok.*;
 @Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Dimension {
-    @JsonProperty("width")
+    @JsonProperty(value = "width", defaultValue = "1280")
     private Integer width;
 
-    @JsonProperty("height")
+    @JsonProperty(value = "height", defaultValue = "720")
     private Integer height;
 }

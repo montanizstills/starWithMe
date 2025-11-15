@@ -28,3 +28,4 @@ class VideoBackground implements BackgroundSettings {
     private String fit = "cover";
 
 }
+

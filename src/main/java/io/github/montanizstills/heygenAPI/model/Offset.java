@@ -12,9 +12,9 @@ import lombok.*;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Offset {
     @JsonProperty("x")
-    private Float x = 0.0f;
+    private Float x;
 
     @JsonProperty("y")
-    private Float y = 0.0f;
+    private Float y;
 
 }
