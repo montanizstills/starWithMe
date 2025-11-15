@@ -1,4 +1,4 @@
-package io.github.montanizstills.heygenAPI.model;
+package io.github.montanizstills.heygenAPI;
 
 public class AvatarVideo {
     private Boolean caption;

@@ -1,18 +1,71 @@
 package io.github.montanizstills.heygenAPI.model;
 
-import org.springframework.boot.configurationprocessor.json.JSONObject;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.github.montanizstills.heygenAPI.model.interfaces.BackgroundSettings;
+import io.github.montanizstills.heygenAPI.model.interfaces.CharacterSettings;
+import io.github.montanizstills.heygenAPI.model.interfaces.VoiceSettings;
 
-public enum VideoInput {
+// ==================== Video Input ====================
+@JsonInclude(JsonInclude.Include.NON_NULL)
+class VideoInput {
+    @JsonProperty("character")
+    private CharacterSettings character;
 
-    test();
+    @JsonProperty("voice")
+    private VoiceSettings voice;
 
-    private CharacterObject character;
-    private VoiceObject voice;
-    private BackgroundObject background;
-    private TextObject textObject;
-    private JSONObject body;
+    @JsonProperty("background")
+    private BackgroundSettings background;
 
-    VideoInput(JSONObject jsonObject) {
-        this.body = jsonObject;
+    // Constructors
+    public VideoInput() {
+    }
+
+    public VideoInput(VoiceSettings voice) {
+        this.voice = voice;
+    }
+
+    public VideoInput(CharacterSettings character, VoiceSettings voice, BackgroundSettings background) {
+        this.character = character;
+        this.voice = voice;
+        this.background = background;
+    }
+
+    // Getters and Setters
+    public CharacterSettings getCharacter() {
+        return character;
+    }
+
+    public void setCharacter(CharacterSettings character) {
+        this.character = character;
+    }
+
+    public VoiceSettings getVoice() {
+        return voice;
+    }
+
+    public void setVoice(VoiceSettings voice) {
+        this.voice = voice;
+    }
+
+    public BackgroundSettings getBackground() {
+        return background;
+    }
+
+    public void setBackground(BackgroundSettings background) {
+        this.background = background;
+    }
+
+    @Override
+    public String toString() {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            return mapper.writeValueAsString(this);
+        } catch (JsonProcessingException e) {
+            return "Error converting to JSON: " + e.getMessage();
+        }
     }
 }
