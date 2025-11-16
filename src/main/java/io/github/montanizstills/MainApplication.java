@@ -5,24 +5,23 @@ import io.github.montanizstills.heygenAPI.model.VideoInput;
 import io.github.montanizstills.heygenAPI.model.background.BackgroundSettings;
 import io.github.montanizstills.heygenAPI.model.character.AvatarStyle;
 import io.github.montanizstills.heygenAPI.model.character.CharacterSettings;
-import io.github.montanizstills.heygenAPI.model.character.CharacterType;
 import io.github.montanizstills.heygenAPI.model.voice.VoiceSettings;
 import io.github.montanizstills.heygenAPI.model.voice.VoiceType;
 import io.github.montanizstills.heygenAPI.utils.Dimension;
 
-import java.io.IOException;
 import java.util.List;
 
 public class MainApplication {
 
-    public static void main(String[] args) throws IOException, InterruptedException {
-        // Create voice settings
+    public static void main(String[] args) {
+        // ======= Create avatar (character) settings =========
         CharacterSettings characterSettings = CharacterSettings.builder()
                 .scale(1f)
                 .avatarId("Test-Avatar01")
                 .avatarStyle(AvatarStyle.Normal)
                 .build();
 
+        // ======= Create voice settings =========
         VoiceSettings voiceSettings = VoiceSettings.builder()
                 .type(VoiceType.Text)
                 .voiceId("voice_id_123")
@@ -31,9 +30,8 @@ public class MainApplication {
                 .pitch(0)
                 .build();
 
-        // Create avatar (character) settings
 
-        // Create background settings
+        // ======= Create background settings =========
         BackgroundSettings backgroundSettings = BackgroundSettings.builder()
                 .value("#FFFFFF")
                 .build();
