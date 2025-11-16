@@ -2,8 +2,7 @@ package io.github.montanizstills.heygenAPI.model.character;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.github.montanizstills.heygenAPI.interfaces.ICharacterSettings;
-import io.github.montanizstills.heygenAPI.utils.Offset;
+import io.github.montanizstills.heygenAPI.model.Offset;
 import lombok.*;
 
 import java.io.Serializable;
@@ -20,7 +19,7 @@ public class CharacterSettings implements ICharacterSettings, Serializable {
     @JsonProperty(value = "type", required = true)
     private String type = "avatar";
 
-    @JsonProperty(required = true)
+    @JsonProperty(value = "avatar_id", required = true)
     private String avatarId;
 
     @JsonProperty(value = "talking_photo_id", required = true)

@@ -2,9 +2,9 @@ package io.github.montanizstills.heygenAPI.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.github.montanizstills.heygenAPI.interfaces.IBackgroundSettings;
-import io.github.montanizstills.heygenAPI.interfaces.ICharacterSettings;
-import io.github.montanizstills.heygenAPI.interfaces.IVoiceSettings;
+import io.github.montanizstills.heygenAPI.model.background.IBackgroundSettings;
+import io.github.montanizstills.heygenAPI.model.character.ICharacterSettings;
+import io.github.montanizstills.heygenAPI.model.voice.IVoiceSettings;
 import lombok.*;
 
 @Getter

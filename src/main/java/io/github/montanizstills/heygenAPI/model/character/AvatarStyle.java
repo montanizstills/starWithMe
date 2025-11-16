@@ -1,11 +1,23 @@
 package io.github.montanizstills.heygenAPI.model.character;
 
-public enum AvatarStyle {
+import io.github.montanizstills.heygenAPI.utils.JsonEnum;
+
+public enum AvatarStyle implements JsonEnum {
     Circle, CloseUp, Normal;
 
-    private String style;
+    private final String style;
 
-    AvatarStyle(){
+    AvatarStyle() {
         this.style = this.name().toLowerCase();
+    }
+
+    @Override
+    public String getValue() {
+        return this.style;
+    }
+
+    @Override
+    public String toJson() {
+        return JsonEnum.super.toJson();
     }
 }

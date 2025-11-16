@@ -1,4 +1,4 @@
-package io.github.montanizstills.heygenAPI.utils;
+package io.github.montanizstills.heygenAPI.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;

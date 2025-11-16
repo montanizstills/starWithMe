@@ -2,7 +2,7 @@ package io.github.montanizstills.heygenAPI.model.text;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.github.montanizstills.heygenAPI.utils.Position;
+import io.github.montanizstills.heygenAPI.model.Position;
 import lombok.*;
 
 @Getter

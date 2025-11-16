@@ -2,7 +2,6 @@ package io.github.montanizstills.heygenAPI.model.voice;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.github.montanizstills.heygenAPI.interfaces.IVoiceSettings;
 import lombok.*;
 
 @Getter

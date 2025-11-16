@@ -1,6 +1,8 @@
 package io.github.montanizstills.heygenAPI.model.character;
 
-public enum Expression {
+import io.github.montanizstills.heygenAPI.utils.JsonEnum;
+
+public enum Expression implements JsonEnum {
     Default, Happy;
 
     private String expression;
@@ -8,4 +10,14 @@ public enum Expression {
     Expression() {
         this.expression = this.name().toLowerCase();
     } // todo - Applies only to the talking_photo type.
+
+    @Override
+    public String getValue() {
+        return this.expression;
+    }
+
+    @Override
+    public String toJson() {
+        return JsonEnum.super.toJson();
+    }
 }

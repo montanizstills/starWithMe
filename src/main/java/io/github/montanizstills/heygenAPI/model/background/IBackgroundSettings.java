@@ -1,4 +1,4 @@
-package io.github.montanizstills.heygenAPI.interfaces;
+package io.github.montanizstills.heygenAPI.model.background;
 
 
 import com.fasterxml.jackson.core.JsonProcessingException;

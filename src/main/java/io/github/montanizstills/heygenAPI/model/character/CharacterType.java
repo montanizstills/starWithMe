@@ -1,6 +1,8 @@
 package io.github.montanizstills.heygenAPI.model.character;
 
-public enum CharacterType {
+import io.github.montanizstills.heygenAPI.utils.JsonEnum;
+
+public enum CharacterType implements JsonEnum {
     AVATAR, TALKING_PHOTO;
 
     private final String type;
@@ -9,4 +11,13 @@ public enum CharacterType {
         this.type = this.name().toLowerCase();
     }
 
+    @Override
+    public String getValue() {
+        return this.type;
+    }
+
+    @Override
+    public String toJson() {
+        return JsonEnum.super.toJson();
+    }
 }

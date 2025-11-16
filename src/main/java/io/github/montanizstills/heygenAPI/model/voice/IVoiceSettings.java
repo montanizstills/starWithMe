@@ -1,10 +1,9 @@
-package io.github.montanizstills.heygenAPI.interfaces;
-
+package io.github.montanizstills.heygenAPI.model.voice;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-public interface ICharacterSettings {
+public interface IVoiceSettings {
     default String toJson() {
         try {
             ObjectMapper mapper = new ObjectMapper();
@@ -14,3 +13,4 @@ public interface ICharacterSettings {
         }
     }
 }
+

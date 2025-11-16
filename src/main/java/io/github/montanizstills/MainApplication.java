@@ -7,7 +7,7 @@ import io.github.montanizstills.heygenAPI.model.character.AvatarStyle;
 import io.github.montanizstills.heygenAPI.model.character.CharacterSettings;
 import io.github.montanizstills.heygenAPI.model.voice.VoiceSettings;
 import io.github.montanizstills.heygenAPI.model.voice.VoiceType;
-import io.github.montanizstills.heygenAPI.utils.Dimension;
+import io.github.montanizstills.heygenAPI.model.Dimension;
 
 import java.util.List;
 

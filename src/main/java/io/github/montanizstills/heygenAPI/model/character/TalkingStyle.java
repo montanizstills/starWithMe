@@ -1,11 +1,23 @@
 package io.github.montanizstills.heygenAPI.model.character;
 
-public enum TalkingStyle {
+import io.github.montanizstills.heygenAPI.utils.JsonEnum;
+
+public enum TalkingStyle implements JsonEnum {
     Stable, Expressive;
 
     private final String talkingStyle;
 
     TalkingStyle() {
         this.talkingStyle = this.name().toLowerCase();
+    }
+
+    @Override
+    public String getValue() {
+        return this.talkingStyle;
+    }
+
+    @Override
+    public String toJson() {
+        return JsonEnum.super.toJson();
     }
 }

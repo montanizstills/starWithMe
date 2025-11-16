@@ -1,4 +1,4 @@
-package io.github.montanizstills.heygenAPI.utils;
+package io.github.montanizstills.heygenAPI.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -10,11 +10,11 @@ import lombok.*;
 @NoArgsConstructor
 @Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class Position {
+public class Offset {
+    @JsonProperty("x")
+    private Float x;
 
-    @JsonProperty(value = "x", required = true)
-    private double x;
+    @JsonProperty("y")
+    private Float y;
 
-    @JsonProperty(value = "y", required = true)
-    private double y;
-}
+} // todo - Applies to both avatar and talking_photo type.
