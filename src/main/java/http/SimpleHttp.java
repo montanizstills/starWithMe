@@ -1,8 +1,6 @@
 package http;
 
 import io.github.montanizstills.heygenAPI.HeygenUtils;
-import io.github.montanizstills.utils.Utils;
-import org.springframework.http.HttpMethod;
 
 import java.io.IOException;
 import java.net.URI;
@@ -13,32 +11,38 @@ import java.net.http.HttpResponse;
 public enum SimpleHttp {
     GET, POST, PUT, DELETE;
 
-    public void sendRequest(String uriInput, HttpMethod method, String requestBody)
+    public void sendRequest(String uriInput, String requestBody)
             throws IOException, InterruptedException {
+
+        HeygenUtils heygenUtils = new HeygenUtils();
+        heygenUtils.createAPIKey();
+
         HttpClient client = HttpClient.newHttpClient();
         HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
                 .uri(URI.create(uriInput))
-                .header("x-api-key","");
+                .header("Content-Type", "application/json")
+                .header("x-api-key", heygenUtils.getHeygen_api_key());
 
         // Set the HTTP method and body if applicable
-        switch (method) {
-            case GET:
+        switch (this.name()) {
+            case "GET":
                 requestBuilder.GET();
                 break;
-            case POST:
+            case "POST":
                 requestBuilder.POST(HttpRequest.BodyPublishers.ofString(
                         requestBody != null ? requestBody : ""));
                 break;
-            case PUT:
+            case "PUT":
                 requestBuilder.PUT(HttpRequest.BodyPublishers.ofString(
                         requestBody != null ? requestBody : ""));
                 break;
-            case DELETE:
+            case "DELETE":
                 requestBuilder.DELETE();
                 break;
         }
 
         HttpRequest request = requestBuilder.build();
+        System.out.println(requestBody);
         HttpResponse<String> response = client.send(request,
                 HttpResponse.BodyHandlers.ofString());
 

@@ -1,4 +1,4 @@
-package io.github.montanizstills.heygenAPI.model;
+package io.github.montanizstills.heygenAPI.utils;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -10,11 +10,11 @@ import lombok.*;
 @NoArgsConstructor
 @Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class Offset {
-    @JsonProperty("x")
-    private Float x;
+public class Position {
 
-    @JsonProperty("y")
-    private Float y;
+    @JsonProperty(value = "x", required = true)
+    private double x;
 
+    @JsonProperty(value = "y", required = true)
+    private double y;
 }

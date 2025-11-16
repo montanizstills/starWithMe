@@ -16,6 +16,10 @@ public class HeygenUtils {
     public HeygenUtils() {
     }
 
+    public String getHeygen_api_key(){
+        return this.heygen_api_key;
+    }
+
     public void createAPIKey() {
         try {
             this.heygen_api_key = new Utils().createJsonMap("secrets.json").get("HEYGEN_API_KEY");
@@ -23,19 +27,5 @@ public class HeygenUtils {
             throw new Error(e);
         }
     }
-
-    public void simpleGet(String URI_Input) throws IOException, InterruptedException {
-        HttpClient client = HttpClient.newHttpClient();
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(URI_Input))
-                .header("x-api-key", heygen_api_key)
-                .GET()
-                .build();
-
-        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-        System.out.println("Response Status Code: " + response.statusCode());
-        System.out.println("Response Body: " + response.body());
-    }
-
 
 }

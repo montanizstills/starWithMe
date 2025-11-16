@@ -1,9 +1,10 @@
-package io.github.montanizstills.heygenAPI.model.interfaces;
+package io.github.montanizstills.heygenAPI.interfaces;
+
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-public interface Response {
+public interface ICharacterSettings {
     default String toJson() {
         try {
             ObjectMapper mapper = new ObjectMapper();

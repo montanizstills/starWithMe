@@ -2,7 +2,8 @@ package io.github.montanizstills.heygenAPI.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.github.montanizstills.heygenAPI.model.interfaces.Request;
+import io.github.montanizstills.heygenAPI.interfaces.IRequest;
+import io.github.montanizstills.heygenAPI.utils.Dimension;
 import lombok.*;
 
 import java.util.List;
@@ -13,7 +14,7 @@ import java.util.List;
 @NoArgsConstructor
 @Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class AvatarVideoRequest implements Request {
+public class AvatarVideoRequest implements IRequest {
     @JsonProperty(value = "caption", defaultValue = "False")
     private Boolean caption;
 
