@@ -38,7 +38,6 @@ public enum SimpleHttp {
         }
 
         HttpRequest request = requestBuilder.build();
-        System.out.println(requestBody);
         HttpResponse<String> response = client.send(request,
                 HttpResponse.BodyHandlers.ofString());
 

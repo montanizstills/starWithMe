@@ -12,15 +12,15 @@ import lombok.*;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ElevenLabsSettings {
     @JsonProperty("model")
-    private String model;
+    private ElevenLabsModel model;
 
     @JsonProperty("similarity_boost")
-    private Float similarityBoost;
+    private Float similarityBoost; // todo - Value ranges from 0.0 to 1.0.
 
     @JsonProperty("stability")
-    private Float stability;
+    private Float stability; // todo - Value ranges from 0.0 to 1.0.
 
     @JsonProperty("style")
-    private Float style;
+    private Float style; // todo - Value ranges from 0.0 to 1.0.
 
 }

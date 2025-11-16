@@ -12,8 +12,9 @@ import lombok.*;
 @Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Text {
+    @Builder.Default
     @JsonProperty(value = "type", required = true)
-    private String type;
+    private final String type = "text";
 
     @JsonProperty(value = "text", required = true)
     private String text;
@@ -22,18 +23,18 @@ public class Text {
     private String fontFamily;
 
     @JsonProperty(value="font_size")
-    private String fontSize;
+    private Float fontSize;
 
     @JsonProperty(value="font_weight")
     private String fontWeight;
 
     @JsonProperty(value="color")
-    private String color;
+    private String color; // todo - Text color in hex format (e.g., #FFFFFF).
 
     @JsonProperty(value="position")
     private Position position;
 
-    private String textAlign;
+    private TextAlign textAlign;
 
     @JsonProperty(required = true)
     private String lineHeight;

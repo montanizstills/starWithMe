@@ -17,4 +17,4 @@ public class Offset {
     @JsonProperty("y")
     private Float y;
 
-}
+} // todo - Applies to both avatar and talking_photo type.

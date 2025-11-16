@@ -1,12 +1,13 @@
 package io.github.montanizstills;
 
-import http.SimpleHttp;
-import io.github.montanizstills.heygenAPI.HeygenEndpoints;
-import io.github.montanizstills.heygenAPI.model.*;
+import io.github.montanizstills.heygenAPI.model.AvatarVideoRequest;
+import io.github.montanizstills.heygenAPI.model.VideoInput;
 import io.github.montanizstills.heygenAPI.model.background.BackgroundSettings;
+import io.github.montanizstills.heygenAPI.model.character.AvatarStyle;
 import io.github.montanizstills.heygenAPI.model.character.CharacterSettings;
-import io.github.montanizstills.heygenAPI.model.character.CharacterSettingsType;
+import io.github.montanizstills.heygenAPI.model.character.CharacterType;
 import io.github.montanizstills.heygenAPI.model.voice.VoiceSettings;
+import io.github.montanizstills.heygenAPI.model.voice.VoiceType;
 import io.github.montanizstills.heygenAPI.utils.Dimension;
 
 import java.io.IOException;
@@ -16,7 +17,14 @@ public class MainApplication {
 
     public static void main(String[] args) throws IOException, InterruptedException {
         // Create voice settings
+        CharacterSettings characterSettings = CharacterSettings.builder()
+                .scale(1f)
+                .avatarId("Test-Avatar01")
+                .avatarStyle(AvatarStyle.Normal)
+                .build();
+
         VoiceSettings voiceSettings = VoiceSettings.builder()
+                .type(VoiceType.Text)
                 .voiceId("voice_id_123")
                 .inputText("Hello, this is a test video!")
                 .speed(1.0f)
@@ -24,12 +32,6 @@ public class MainApplication {
                 .build();
 
         // Create avatar (character) settings
-        CharacterSettings characterSettings = CharacterSettings.builder()
-//                .type(String.valueOf(CharacterSettingsType.AVATAR)) // todo - should use default value but is omitted in JSON
-                .avatarId("avatar_id_456")
-                .scale(1.0f)
-                .avatarStyle("normal")
-                .build();
 
         // Create background settings
         BackgroundSettings backgroundSettings = BackgroundSettings.builder()
