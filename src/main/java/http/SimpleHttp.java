@@ -14,16 +14,12 @@ public enum SimpleHttp {
     public void sendRequest(String uriInput, String requestBody)
             throws IOException, InterruptedException {
 
-        HeygenUtils heygenUtils = new HeygenUtils();
-        heygenUtils.createAPIKey();
-
         HttpClient client = HttpClient.newHttpClient();
         HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
                 .uri(URI.create(uriInput))
                 .header("Content-Type", "application/json")
-                .header("x-api-key", heygenUtils.getHeygen_api_key());
+                .header("x-api-key", new HeygenUtils().getHeygen_api_key());
 
-        // Set the HTTP method and body if applicable
         switch (this.name()) {
             case "GET":
                 requestBuilder.GET();
@@ -51,9 +47,3 @@ public enum SimpleHttp {
         System.out.println("Body: " + response.body());
     }
 }
-
-// Usage examples:
-//sendRequest("https://api.example.com/resource",HttpMethod.GET, null);
-//sendRequest("https://api.example.com/resource",HttpMethod.POST, "{\"key\":\"value\"}");
-//sendRequest("https://api.example.com/resource/1",HttpMethod.PUT, "{\"key\":\"updated\"}");
-//sendRequest("https://api.example.com/resource/1",HttpMethod.DELETE, null);

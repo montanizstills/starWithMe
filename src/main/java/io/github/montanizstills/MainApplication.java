@@ -5,6 +5,7 @@ import io.github.montanizstills.heygenAPI.HeygenEndpoints;
 import io.github.montanizstills.heygenAPI.model.*;
 import io.github.montanizstills.heygenAPI.model.background.BackgroundSettings;
 import io.github.montanizstills.heygenAPI.model.character.CharacterSettings;
+import io.github.montanizstills.heygenAPI.model.character.CharacterSettingsType;
 import io.github.montanizstills.heygenAPI.model.voice.VoiceSettings;
 import io.github.montanizstills.heygenAPI.utils.Dimension;
 
@@ -24,6 +25,7 @@ public class MainApplication {
 
         // Create avatar (character) settings
         CharacterSettings characterSettings = CharacterSettings.builder()
+//                .type(String.valueOf(CharacterSettingsType.AVATAR)) // todo - should use default value but is omitted in JSON
                 .avatarId("avatar_id_456")
                 .scale(1.0f)
                 .avatarStyle("normal")
@@ -57,6 +59,7 @@ public class MainApplication {
 
         // Convert to JSON
         String request = avatarVideoRequest.toJson();
-        SimpleHttp.POST.sendRequest(HeygenEndpoints.CREATE_VIDEO, request);
+        System.out.println(request);
+//        SimpleHttp.POST.sendRequest(HeygenEndpoints.CREATE_VIDEO, request);
     }
 }

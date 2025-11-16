@@ -8,6 +8,7 @@ import lombok.*;
 
 import java.io.Serializable;
 
+
 @Getter
 @Setter
 @AllArgsConstructor
@@ -15,7 +16,7 @@ import java.io.Serializable;
 @Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class CharacterSettings implements ICharacterSettings, Serializable {
-    @JsonProperty(required = true, defaultValue = "avatar")
+    @JsonProperty(value = "type", required = true, defaultValue = "avatar")
     private String type;
 
     @JsonProperty(required = true)
@@ -51,6 +52,5 @@ public class CharacterSettings implements ICharacterSettings, Serializable {
 
     @JsonProperty(value = "circle_background_color")
     private String circleBackgroundColor;
-
-
 }
+
