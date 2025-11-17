@@ -11,8 +11,7 @@ import java.net.http.HttpResponse;
 public enum SimpleHttp {
     GET, POST, PUT, DELETE;
 
-    public void sendRequest(String uriInput, String requestBody)
-            throws IOException, InterruptedException {
+    public void sendRequest(String uriInput, String requestBody) {
 
         HttpClient client = HttpClient.newHttpClient();
         HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
@@ -38,8 +37,13 @@ public enum SimpleHttp {
         }
 
         HttpRequest request = requestBuilder.build();
-        HttpResponse<String> response = client.send(request,
-                HttpResponse.BodyHandlers.ofString());
+        HttpResponse<String> response = null;
+        try {
+            response = client.send(request,
+                    HttpResponse.BodyHandlers.ofString());
+        } catch (IOException | InterruptedException e) {
+            throw new Error(e);
+        }
 
         // Handle response as needed
         System.out.println("Status: " + response.statusCode());

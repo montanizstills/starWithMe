@@ -1,6 +1,6 @@
 package io.github.montanizstills.heygenAPI.model.voice;
 
-import io.github.montanizstills.heygenAPI.utils.JsonEnum;
+import io.github.montanizstills.heygenAPI.json.JsonEnum;
 
 public enum ElevenLabsModel implements JsonEnum {
     eleven_monolingual_v1,

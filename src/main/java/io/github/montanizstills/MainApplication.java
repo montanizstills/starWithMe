@@ -1,8 +1,11 @@
 package io.github.montanizstills;
 
+import http.SimpleHttp;
+import io.github.montanizstills.heygenAPI.HeygenEndpoints;
 import io.github.montanizstills.heygenAPI.model.AvatarVideoRequest;
 import io.github.montanizstills.heygenAPI.model.VideoInput;
 import io.github.montanizstills.heygenAPI.model.background.BackgroundSettings;
+import io.github.montanizstills.heygenAPI.model.background.BackgroundType;
 import io.github.montanizstills.heygenAPI.model.character.AvatarStyle;
 import io.github.montanizstills.heygenAPI.model.character.CharacterSettings;
 import io.github.montanizstills.heygenAPI.model.voice.VoiceSettings;
@@ -17,14 +20,14 @@ public class MainApplication {
         // ======= Create avatar (character) settings =========
         CharacterSettings characterSettings = CharacterSettings.builder()
                 .scale(1f)
-                .avatarId("Test-Avatar01")
+                .avatarId("ef809a45b38340cf84cec36fa71c7aae") //todo - replace with lookup
                 .avatarStyle(AvatarStyle.Normal)
                 .build();
 
         // ======= Create voice settings =========
         VoiceSettings voiceSettings = VoiceSettings.builder()
                 .type(VoiceType.Text)
-                .voiceId("voice_id_123")
+                .voiceId("d3d194b2d2fd44298e4428b5f9358129") // todo - replace with lookup (run query for name return id)
                 .inputText("Hello, this is a test video!")
                 .speed(1.0f)
                 .pitch(0)
@@ -33,6 +36,7 @@ public class MainApplication {
 
         // ======= Create background settings =========
         BackgroundSettings backgroundSettings = BackgroundSettings.builder()
+                .type(BackgroundType.Color)
                 .value("#FFFFFF")
                 .build();
 
@@ -60,6 +64,6 @@ public class MainApplication {
         // Convert to JSON
         String request = avatarVideoRequest.toJson();
         System.out.println(request);
-//        SimpleHttp.POST.sendRequest(HeygenEndpoints.CREATE_VIDEO, request);
+        SimpleHttp.POST.sendRequest(HeygenEndpoints.CREATE_VIDEO, request);
     }
 }

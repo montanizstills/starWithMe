@@ -1,6 +1,6 @@
 package io.github.montanizstills.heygenAPI.model.background;
 
-import io.github.montanizstills.heygenAPI.utils.JsonEnum;
+import io.github.montanizstills.heygenAPI.json.JsonEnum;
 
 public enum Fit implements JsonEnum {
     Crop, Cover, Contain, None;

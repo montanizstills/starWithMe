@@ -1,6 +1,6 @@
 package io.github.montanizstills.heygenAPI.model.text;
 
-import io.github.montanizstills.heygenAPI.utils.JsonEnum;
+import io.github.montanizstills.heygenAPI.json.JsonEnum;
 
 public enum TextAlign implements JsonEnum {
     LEFT,

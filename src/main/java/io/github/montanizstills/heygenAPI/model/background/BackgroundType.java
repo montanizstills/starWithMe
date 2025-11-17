@@ -1,6 +1,6 @@
 package io.github.montanizstills.heygenAPI.model.background;
 
-import io.github.montanizstills.heygenAPI.utils.JsonEnum;
+import io.github.montanizstills.heygenAPI.json.JsonEnum;
 
 public enum BackgroundType implements JsonEnum {
     Color, Image, Video;

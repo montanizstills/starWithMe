@@ -1,6 +1,6 @@
 package io.github.montanizstills.heygenAPI.model.voice;
 
-import io.github.montanizstills.heygenAPI.utils.JsonEnum;
+import io.github.montanizstills.heygenAPI.json.JsonEnum;
 
 public enum Emotion implements JsonEnum {
     Excited, Friendly, Serious, Soothing, Broadcaster;

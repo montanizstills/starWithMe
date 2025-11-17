@@ -1,6 +1,6 @@
 package io.github.montanizstills.heygenAPI.model.character;
 
-import io.github.montanizstills.heygenAPI.utils.JsonEnum;
+import io.github.montanizstills.heygenAPI.json.JsonEnum;
 
 public enum Expression implements JsonEnum {
     Default, Happy;
