@@ -24,7 +24,7 @@ public class AvatarVideoRequest implements IRequest {
     private String callbackId;
 
     @JsonProperty(value = "video_inputs", required = true)
-    private List videoInputs;
+    private List videoInputs; //todo - introduce class to parameterize List
 
     @JsonProperty("dimension")
     private Dimension dimension;

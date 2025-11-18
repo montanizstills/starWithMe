@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 
 /**
  * Interface for enums that need to serialize to JSON with custom string values.
- *
+ * <p>
  * Implementing enums ONLY need to provide getValue() method.
  * Both serialization and deserialization are handled automatically!
  */
@@ -30,7 +30,7 @@ public interface JsonEnum {
     /**
      * Helper method to find an enum value by its string representation.
      * Used internally by the deserializer.
-     *
+     * <p>
      * This version accepts any Enum class that implements JsonEnum,
      * making it easier to call from the deserializer without complex casts.
      */
@@ -57,10 +57,7 @@ public interface JsonEnum {
             }
         }
 
-        throw new IllegalArgumentException(
-                "Unknown " + enumClass.getSimpleName() + " value: '" + value + "'. " +
-                        "Valid values are: " + getValidValues(enumType)
-        );
+        throw new IllegalArgumentException("Unknown " + enumClass.getSimpleName() + " value: '" + value + "'. " + "Valid values are: " + getValidValues(enumType));
     }
 
     /**

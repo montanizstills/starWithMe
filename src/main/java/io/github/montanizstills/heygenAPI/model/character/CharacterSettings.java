@@ -14,7 +14,7 @@ import java.io.Serializable;
 @NoArgsConstructor
 @Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class CharacterSettings implements ICharacterSettings, Serializable {
+public class CharacterSettings implements ICharacterSettings {
     @Builder.Default
     @JsonProperty(value = "type", required = true)
     private String type = "avatar";

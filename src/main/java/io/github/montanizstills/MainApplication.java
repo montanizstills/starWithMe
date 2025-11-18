@@ -2,68 +2,25 @@ package io.github.montanizstills;
 
 import http.SimpleHttp;
 import io.github.montanizstills.heygenAPI.HeygenEndpoints;
-import io.github.montanizstills.heygenAPI.model.AvatarVideoRequest;
-import io.github.montanizstills.heygenAPI.model.VideoInput;
-import io.github.montanizstills.heygenAPI.model.background.BackgroundSettings;
-import io.github.montanizstills.heygenAPI.model.background.BackgroundType;
-import io.github.montanizstills.heygenAPI.model.character.AvatarStyle;
-import io.github.montanizstills.heygenAPI.model.character.CharacterSettings;
-import io.github.montanizstills.heygenAPI.model.voice.VoiceSettings;
-import io.github.montanizstills.heygenAPI.model.voice.VoiceType;
-import io.github.montanizstills.heygenAPI.model.Dimension;
-
-import java.util.List;
+import io.github.montanizstills.heygenAPI.model.photo.*;
 
 public class MainApplication {
 
+
     public static void main(String[] args) {
-        // ======= Create avatar (character) settings =========
-        CharacterSettings characterSettings = CharacterSettings.builder()
-                .scale(1f)
-                .avatarId("ef809a45b38340cf84cec36fa71c7aae") //todo - replace with lookup
-                .avatarStyle(AvatarStyle.Normal)
+        PhotoSettings photo = PhotoSettings.builder()
+                .name("Simple-Test-Photo")
+                .age(Age.Unspecified)
+                .gender(Gender.Man)
+                .ethnicity(Ethnicity.White)
+                .orientation(Orientation.Horizontal)
+                .pose(Pose.Full_Body)
+                .style(Style.Vintage)
+                .appearance("dull colors; wool sweater; black dress shoes; bright lighting; standing in front of a window; clear sky background;")
                 .build();
 
-        // ======= Create voice settings =========
-        VoiceSettings voiceSettings = VoiceSettings.builder()
-                .type(VoiceType.Text)
-                .voiceId("d3d194b2d2fd44298e4428b5f9358129") // todo - replace with lookup (run query for name return id)
-                .inputText("Hello, this is a test video!")
-                .speed(1.0f)
-                .pitch(0)
-                .build();
-
-
-        // ======= Create background settings =========
-        BackgroundSettings backgroundSettings = BackgroundSettings.builder()
-                .type(BackgroundType.Color)
-                .value("#FFFFFF")
-                .build();
-
-        // Wrap them in a VideoInput object
-        VideoInput videoInput = VideoInput.builder()
-                .character(characterSettings)
-                .voice(voiceSettings)
-                .background(backgroundSettings)
-                .build();
-
-        // Create dimension
-        Dimension dimension = new Dimension(1280, 720);
-
-        // Create the full request
-        AvatarVideoRequest avatarVideoRequest = AvatarVideoRequest.builder()
-                .videoInputs(List.of(videoInput))
-                .dimension(dimension)
-                .title("My Test Video from JavaAPI")
-                .caption(Boolean.TRUE)
-//                .callbackId("my-callback-id")
-//                .folderId("my-folder-id")
-//                .callbackUrl("https://example.com/callback")
-                .build();
-
-        // Convert to JSON
-        String request = avatarVideoRequest.toJson();
+        String request = photo.toJson();
         System.out.println(request);
-        SimpleHttp.POST.sendRequest(HeygenEndpoints.CREATE_VIDEO, request);
+        SimpleHttp.POST.sendRequest(HeygenEndpoints.CREATE_PHOTO_AVATAR_PHOTOS, request);
     }
 }
