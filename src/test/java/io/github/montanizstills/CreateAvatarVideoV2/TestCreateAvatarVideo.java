@@ -29,7 +29,7 @@ public class TestCreateAvatarVideo {
         VoiceSettings voiceSettings = VoiceSettings.builder()
                 .type(VoiceType.Text)
                 .voiceId("d3d194b2d2fd44298e4428b5f9358129") // todo - replace with lookup (run query for name return id)
-                .inputText("Hello, this is a test video 2!")
+                .inputText("Hello, this is a test video, my name is not Jay. I was written 20 seconds ago by awesome Nez, who just got off of work. Grand expectations are coming.!")
                 .speed(1.0f)
                 .pitch(0)
                 .build();
@@ -53,7 +53,7 @@ public class TestCreateAvatarVideo {
         AvatarVideoRequest avatarVideoRequest = AvatarVideoRequest.builder()
                 .videoInputs(List.of(videoInput))
                 .dimension(new Dimension(1280, 720))
-                .title("My Test Video from JavaAPI")
+                .title("My Second Test Video from JavaAPI")
                 .caption(Boolean.TRUE)
 //                .callbackId("my-callback-id")
 //                .folderId("my-folder-id")

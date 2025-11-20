@@ -8,8 +8,8 @@ public enum Style implements JsonEnum {
     private final String value;
 
     Style() {
-        this.value = this.name().toLowerCase();
-    }
+        this.value = this.name();
+    } // todo - requires title-case capitalization
 
     @Override
     public String getValue() {

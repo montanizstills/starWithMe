@@ -4,10 +4,10 @@ import io.github.montanizstills.heygenAPI.json.JsonEnum;
 
 public enum Ethnicity implements JsonEnum {
     White, Black, Asian_American, East_Asian, South_East_Asian, South_Asian, Middle_Eastern, Pacific, Hispanic, Unspecified;
-    private final String ethnicity;
+    private final String ethnicity; // todo - requires Title-Case
 
     Ethnicity() {
-        this.ethnicity = this.name().toLowerCase();
+        this.ethnicity = this.name();
     }
 
 
