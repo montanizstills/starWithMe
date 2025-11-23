@@ -1,4 +1,4 @@
-package http;
+package io.github.montanizstills.http;
 
 import io.github.montanizstills.heygenAPI.HeygenUtils;
 
@@ -11,7 +11,7 @@ import java.net.http.HttpResponse;
 public enum SimpleHttp {
     GET, POST, PUT, DELETE;
 
-    public void sendRequest(String uriInput, String requestBody) {
+    public SimpleHttpResponse sendRequest(String uriInput, String requestBody) {
 
         HttpClient client = HttpClient.newHttpClient();
         HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
@@ -46,7 +46,8 @@ public enum SimpleHttp {
         }
 
         // Handle response as needed
-        System.out.println("Status: " + response.statusCode());
-        System.out.println("Body: " + response.body());
+        return new SimpleHttpResponse(response.body(),response.statusCode());
+
     }
 }
+

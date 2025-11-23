@@ -1,6 +1,6 @@
 package io.github.montanizstills.CreateAvatarVideoV2;
 
-import http.SimpleHttp;
+import io.github.montanizstills.http.SimpleHttp;
 import io.github.montanizstills.heygenAPI.HeygenEndpoints;
 import io.github.montanizstills.heygenAPI.model.AvatarVideoRequest;
 import io.github.montanizstills.heygenAPI.model.Dimension;
