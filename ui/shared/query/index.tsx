@@ -21,7 +21,7 @@ import {QueryClient, useInfiniteQuery} from '@tanstack/react-query'
 import type {QueryKey, UseInfiniteQueryOptions} from '@tanstack/react-query'
 import wasPageReloaded from '@canvas/util/wasPageReloaded'
 import {v4} from 'uuid'
-import {experimental_createPersister} from '@tanstack/query-persist-client-core'
+import {experimental_createQueryPersister} from '@tanstack/query-persist-client-core'
 
 const ONE_DAY = 1000 * 60 * 60 * 24
 
@@ -29,7 +29,7 @@ if (wasPageReloaded || localStorage.cacheBuster === undefined) {
   localStorage.cacheBuster = v4()
 }
 
-export const sessionStoragePersister = experimental_createPersister({
+export const sessionStoragePersister = experimental_createQueryPersister({
   storage: window.sessionStorage,
   maxAge: ONE_DAY,
   buster: localStorage.cacheBuster,
