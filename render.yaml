@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: canvas-lms
+    runtime: ruby
+    buildCommand: bundle install
+    startCommand: bundle exec rails s -p $PORT
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: canvas-db
+          property: connectionString
+
+databases:
+  - name: canvas-db
+    databaseName: canvas

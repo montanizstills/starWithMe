@@ -41,3 +41,6 @@ build/
 
 ### Secrets ###
 **/src/main/resources
+
+##Canvas LMS
+**/canvas-lms/
