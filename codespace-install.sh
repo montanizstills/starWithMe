@@ -9,7 +9,7 @@ source /usr/local/rvm/scripts/rvm
 
 # Clone Canvas if not exists
 if [ ! -d "canvas-lms" ]; then
-  git clone https://github.com/instructure/canvas-lms.git
+  git clone https://github.com/instructure/canvas-lms.git /workspaces/starWithMe/canvas-lms
 fi
 
 cd canvas-lms
