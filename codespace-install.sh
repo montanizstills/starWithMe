@@ -14,21 +14,21 @@ fi
 
 cd canvas-lms
 
-# Fix Yarn GPG key FIRST
+# Update Yarn GPG key
 echo "Fixing Yarn repository..."
 sudo rm -rf '/usr/share/keyrings/yarnkey.gpg'
 curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo gpg --dearmor -o /usr/share/keyrings/yarnkey.gpg
 echo "deb [signed-by=/usr/share/keyrings/yarnkey.gpg] https://dl.yarnpkg.com/debian stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
 
-# Now install dependencies
+# Install dependencies
 echo "Installing system dependencies..."
 sudo apt-get update
 sudo apt-get install -y shared-mime-info build-essential libpq-dev libxml2-dev libxslt1-dev
 
 # Install Ruby 3.3.6
-echo "Setting up Ruby 3.3.6..."
-rvm install 3.3.6
-rvm use 3.3.6 --default
+echo "Setting up Ruby 3.4.1..."
+rvm install 3.4.1 # rvm install 3.3.6
+rvm use 3.4.1 --default # rvm use 3.3.6 --default
 
 # Verify Ruby version
 echo "Ruby version: $(ruby -v)"
@@ -41,7 +41,7 @@ gem install scrypt sanitize ruby-debug-ide
 
 # Fix permissions
 sudo chown -R codespace:codespace . 2>/dev/null || true
-sudo chown -R codespace:codespace /usr/local/rvm/rubies/ruby-3.3.6/lib/ruby/gems/3.3.0 2>/dev/null || true
+sudo chown -R codespace:codespace /usr/local/rvm/rubies/ruby-3.4.1/lib/ruby/gems/3.4.1 2>/dev/null || true
 
 # Bundle install
 bundle install
