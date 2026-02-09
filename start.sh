@@ -1,6 +1,6 @@
 #!/bin/bash
-bash ./codespace-install.sh 2&>log.txt &
-wait $!
+bash ./codespace-install.sh 2&> log.txt
+# wait $!
 cd canvas-lms
 docker compose start postgres
 docker compose up -d

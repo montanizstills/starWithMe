@@ -16,6 +16,7 @@ cd canvas-lms
 
 # Fix Yarn GPG key FIRST
 echo "Fixing Yarn repository..."
+sudo rm -rf '/usr/share/keyrings/yarnkey.gpg'
 curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo gpg --dearmor -o /usr/share/keyrings/yarnkey.gpg
 echo "deb [signed-by=/usr/share/keyrings/yarnkey.gpg] https://dl.yarnpkg.com/debian stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
 
