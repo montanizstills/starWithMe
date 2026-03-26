@@ -23,7 +23,7 @@ echo "deb [signed-by=/usr/share/keyrings/yarnkey.gpg] https://dl.yarnpkg.com/deb
 # Install dependencies
 echo "Installing system dependencies..."
 sudo apt-get update
-sudo apt-get install -y shared-mime-info build-essential libpq-dev libxml2-dev libxslt1-dev
+sudo apt-get install -y shared-mime-info build-essential libpq-dev libxml2-dev libxslt1-dev libidn11-dev
 
 # Install Ruby 3.3.6
 echo "Setting up Ruby 3.4.1..."
