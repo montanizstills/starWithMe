@@ -1,0 +1,34 @@
+// {
+//   "name": "GitHub Codespaces (Default)",
+//   "image": "mcr.microsoft.com/devcontainers/universal:linux",
+
+//   "features": {
+//     "ghcr.io/devcontainers/features/docker-in-docker:2": {
+//       "version": "latest",
+//       "enableNonRootDocker": "true",
+//       "moby": "true"
+//     }
+//   },
+
+//   "runArgs": ["--privileged", "--platform=linux/amd64"],
+
+//   "remoteUser": "codespace",
+//   "overrideCommand": false
+// }
+
+{
+  "name": "GitHub Codespaces (Default)",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "version": "latest",
+      "enableNonRootDocker": "true",
+      "moby": "true"
+    }
+  },
+  "runArgs": ["--privileged"],
+  "remoteUser": "codespace",
+  "overrideCommand": false
+}

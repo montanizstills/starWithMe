@@ -1,0 +1,42 @@
+services:
+  web:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      RAILS_ENV: development
+      # Canvas initial-setup credentials (consumed once by db:initial_setup)
+      CANVAS_LMS_ADMIN_EMAIL: ${CANVAS_ADMIN_EMAIL:-admin@example.com}
+      CANVAS_LMS_ADMIN_PASSWORD: ${CANVAS_ADMIN_PASSWORD:-changeme}
+      CANVAS_LMS_ACCOUNT_NAME: ${CANVAS_ACCOUNT_NAME:-My Canvas}
+      CANVAS_LMS_STATS_COLLECTION: opt_out
+    volumes:
+      - canvas-src:/canvas
+      - canvas-data:/data
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: canvas_development
+      POSTGRES_USER: canvas
+      POSTGRES_PASSWORD: canvas
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U canvas -d canvas_development"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+
+volumes:
+  canvas-src:
+  canvas-data:
+  pgdata:

@@ -44,3 +44,7 @@ build/
 
 ##Canvas LMS
 **/canvas-lms/
+
+## Logs
+log.txt
+*.log

@@ -1,18 +1,23 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 set -e
 
 echo "Starting Canvas LMS setup..."
 
-# Source RVM so it's available as a function
+# Source RVM (pre-installed in GitHub Codespaces universal image)
 source /usr/local/rvm/scripts/rvm
 
-# Clone Canvas if not exists
-if [ ! -d "canvas-lms" ]; then
-  git clone https://github.com/instructure/canvas-lms.git /workspaces/starWithMe/canvas-lms
+# Workspace root — defaults to /workspaces/starWithMe in Codespaces
+WORKSPACE="${WORKSPACE:-/workspaces/starWithMe}"
+CANVAS_DIR="$WORKSPACE/canvas-lms"
+CONTAINER_USER="${CONTAINER_USER:-codespace}"
+
+# Clone Canvas if not present
+if [ ! -d "$CANVAS_DIR" ]; then
+  git clone https://github.com/instructure/canvas-lms.git "$CANVAS_DIR"
 fi
 
-cd canvas-lms
+cd "$CANVAS_DIR"
 
 # Update Yarn GPG key
 echo "Fixing Yarn repository..."
@@ -20,72 +25,31 @@ sudo rm -rf '/usr/share/keyrings/yarnkey.gpg'
 curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo gpg --dearmor -o /usr/share/keyrings/yarnkey.gpg
 echo "deb [signed-by=/usr/share/keyrings/yarnkey.gpg] https://dl.yarnpkg.com/debian stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
 
-# Install dependencies
+# Install system dependencies
 echo "Installing system dependencies..."
 sudo apt-get update
 sudo apt-get install -y shared-mime-info build-essential libpq-dev libxml2-dev libxslt1-dev libidn11-dev
 
-# Install Ruby 3.3.6
+# Install Ruby 3.4.1
 echo "Setting up Ruby 3.4.1..."
-rvm install 3.4.1 # rvm install 3.3.6
-rvm use 3.4.1 --default # rvm use 3.3.6 --default
+rvm install 3.4.1
+rvm use 3.4.1 --default
 
-# Verify Ruby version
 echo "Ruby version: $(ruby -v)"
 
-# Install bundler
 gem install bundler:2.4.19
-
-# Install gems
 gem install scrypt sanitize ruby-debug-ide
 
 # Fix permissions
-sudo chown -R codespace:codespace . 2>/dev/null || true
-sudo chown -R codespace:codespace /usr/local/rvm/rubies/ruby-3.4.1/lib/ruby/gems/3.4.1 2>/dev/null || true
+sudo chown -R "$CONTAINER_USER:$CONTAINER_USER" . 2>/dev/null || true
+sudo chown -R "$CONTAINER_USER:$CONTAINER_USER" /usr/local/rvm/rubies/ruby-3.4.1/lib/ruby/gems/3.4.1 2>/dev/null || true
 
-# Bundle install
 bundle install
-
-# Yarn install
 yarn install --pure-lockfile
 
-# Copy config files
+# Copy example configs
 for config in amazon_s3 delayed_jobs domain file_store outgoing_mail security external_migration dynamic_settings database; do
   cp -v config/$config.yml.example config/$config.yml 2>/dev/null || true
 done
 
-echo "✅ Canvas LMS setup complete!"
-
-# #!/bin/sh
-# git clone https://github.com/instructure/canvas-lms.git &&
-# cd canvas-lms/ &&
-# sudo apt-get update &&
-# sudo apt-get -y install postgresql-16 zlib1g-dev libldap2-dev libidn11-dev libxml2-dev \
-#     libsqlite3-dev libpq-dev libyaml-dev libxmlsec1-dev curl build-essential shared-mime-info
-# rvm autolibs disable
-# yes | rvm remove all
-# rvm cleanup
-# rvm install 3.4.1
-# rvm install "ruby-3.1.0"
-# rvm use 3.1.0 # & uncomment for background execution
-# # pid=$!; `wait pid`; echo $?
-# echo "$HOSTNAME ruby version: `ruby --version`\n\n\n"
-# gem install bundler:2.4.19 &&
-# gem install nokogumbo scrypt sanitize ruby-debug-ide && # can be deferred to bundle install
-# sudo chown -R codespace:codespace /workspaces/starWithMe/canvas-lms/ &&
-# sudo chown -R codespace:codespace /usr/local/rvm/rubies/ruby-3.4.1/lib/ruby/gems/3.4.0 &&
-# sudo chown -R codespace:codespace /usr/local/rvm/rubies/ruby-3.1.0/lib/ruby/gems/3.1.0 &&
-# bundle _2.4.19_ install #&&
-# bundle install &&
-# yarn install --pure-lockfile &&
-# for config in amazon_s3 delayed_jobs domain file_store outgoing_mail security external_migration dynamic_settings database; \
-#           do cp -v config/$config.yml.example config/$config.yml; done
-# sudo chown -R codespace:codespace /usr/local/rvm/rubies/ruby-3.1.0/lib/ruby/gems/3.1.0 &&
-# bundle _2.4.19_ update &&
-# sudo chown -R codespace:codespace /var/run/postgresql/ &&
-# export PGHOST=localhost &&
-# /usr/lib/postgresql/14/bin/initdb ~/postgresql-data/ -E utf8 &&
-# /usr/lib/postgresql/14/bin/pg_ctl -D ~/postgresql-data/ -l ~/postgresql-data/server.log start &&
-# /usr/lib/postgresql/14/bin/createdb canvas_development &&
-# bundle exec rails canvas:compile_assets &&
-# bundle exec rails db:initial_setup
+echo "Canvas LMS setup complete!"
