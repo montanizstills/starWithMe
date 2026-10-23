@@ -11,6 +11,16 @@ fi
 
 cd "$CANVAS_DIR"
 
+# Jobs worker: shares the web container's code volume, so wait for web to finish
+# installing deps and first-run setup instead of racing it.
+if [ "$1" = "jobs" ]; then
+  until [ -f /data/.setup_complete ]; do
+    echo "Waiting for web first-run setup to finish..."
+    sleep 15
+  done
+  exec bundle exec script/delayed_job run
+fi
+
 # Copy example configs (skip if already present)
 for config in amazon_s3 delayed_jobs domain file_store outgoing_mail security external_migration dynamic_settings; do
   [ -f "config/$config.yml" ] || cp "config/$config.yml.example" "config/$config.yml"
@@ -40,8 +50,7 @@ development:
   cache_store: redis_cache_store
 EOF
 
-# Store gems inside the volume so they survive container rebuilds
-bundle config set --local path 'vendor/bundle'
+# Gems live in the volume (BUNDLE_PATH, set in the Dockerfile) so they survive container rebuilds
 bundle install
 
 yarn install --pure-lockfile

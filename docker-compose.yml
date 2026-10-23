@@ -19,6 +19,23 @@ services:
       redis:
         condition: service_started
 
+  # Background jobs (email, course imports/copies, file processing, exports)
+  jobs:
+    build: .
+    command: ["jobs"]
+    environment:
+      RAILS_ENV: development
+    volumes:
+      - canvas-src:/canvas
+      - canvas-data:/data
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      web:
+        condition: service_started
+
   db:
     image: postgres:16-alpine
     environment:

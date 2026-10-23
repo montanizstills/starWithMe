@@ -16,6 +16,11 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
 
 RUN gem install bundler:2.4.19
 
+# Keep bundler config, plugins (bundler-multilock) and gems in the canvas-src volume
+# so every container sharing it (web, jobs) sees the same bundle.
+ENV BUNDLE_APP_CONFIG=/canvas/.bundle \
+    BUNDLE_PATH=/canvas/vendor/bundle
+
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
