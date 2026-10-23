@@ -9,11 +9,13 @@ Usage: ./start.sh [OPTION]
 Options:
   --local       Run Canvas locally via Docker Compose (Postgres + Redis + web)
   --codespace   Install Canvas inside a GitHub Codespace and start the Rails server
+  --test        Run the local smoke tests against the running stack
   -h, --help    Show this help message
 
 Examples:
   ./start.sh --local
   ./start.sh --codespace
+  ./start.sh --test
 EOF
 }
 
@@ -30,6 +32,9 @@ case "$1" in
     bash ./codespace-install.sh 2>&1 | tee log.txt
     cd "${WORKSPACE:-/workspaces/starWithMe}/canvas-lms"
     bundle exec rails server
+    ;;
+  --test)
+    exec tests/local/smoke.sh "${@:2}"
     ;;
   -h|--help)
     usage
