@@ -28,11 +28,16 @@ development:
   timeout: 5000
 EOF
 
-# Wire Redis for caching
+# Wire Redis: define the server in redis.yml; cache_store.yml then reuses it
+cat > config/redis.yml << 'EOF'
+development:
+  url:
+  - redis://redis:6379
+EOF
+
 cat > config/cache_store.yml << 'EOF'
 development:
   cache_store: redis_cache_store
-  redis_url: redis://redis:6379
 EOF
 
 # Store gems inside the volume so they survive container rebuilds
@@ -41,14 +46,17 @@ bundle install
 
 yarn install --pure-lockfile
 
-# First run: compile assets + seed DB (guarded by a flag file)
+# First run: seed DB, then compile assets (asset compile reads brand_configs from the DB).
+# Each step has its own flag so a failed compile doesn't re-run DB setup.
+if [ ! -f /data/.db_setup_complete ]; then
+  echo "Setting up database..."
+  bundle exec rails db:initial_setup
+  touch /data/.db_setup_complete
+fi
+
 if [ ! -f /data/.setup_complete ]; then
   echo "First run — compiling assets (this takes ~30-60 min)..."
   bundle exec rails canvas:compile_assets
-
-  echo "Setting up database..."
-  bundle exec rails db:initial_setup
-
   touch /data/.setup_complete
   echo "Setup complete."
 fi
