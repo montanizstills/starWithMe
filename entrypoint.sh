@@ -2,14 +2,23 @@
 set -e
 
 CANVAS_DIR=/canvas
+# Pinned Canvas LMS commit, so every build gets the same code. To upgrade, change
+# this, then recreate the canvas-src volume (or check out the new ref in it).
+CANVAS_REF=1c9f0bb8013ed69c4f2efe11fd483025469b7e6c
 
-# Clone Canvas LMS on first run
+# Fetch the pinned Canvas commit on first run
 if [ ! -f "$CANVAS_DIR/Gemfile" ]; then
-  echo "Cloning Canvas LMS..."
-  git clone --depth 1 https://github.com/instructure/canvas-lms.git "$CANVAS_DIR"
+  echo "Fetching Canvas LMS at $CANVAS_REF..."
+  git init -q "$CANVAS_DIR"
+  git -C "$CANVAS_DIR" fetch -q --depth 1 https://github.com/instructure/canvas-lms.git "$CANVAS_REF"
+  git -C "$CANVAS_DIR" checkout -q FETCH_HEAD
 fi
 
 cd "$CANVAS_DIR"
+
+if [ "$(git rev-parse HEAD 2>/dev/null)" != "$CANVAS_REF" ]; then
+  echo "WARNING: /canvas is at $(git rev-parse --short HEAD 2>/dev/null), not pinned $CANVAS_REF"
+fi
 
 # Jobs worker: shares the web container's code volume, so wait for web to finish
 # installing deps and first-run setup instead of racing it.

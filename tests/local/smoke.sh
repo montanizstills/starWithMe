@@ -51,6 +51,7 @@ static_tests() {
   check "entrypoint seeds DB before compiling assets" \
     awk '/db:initial_setup/ {db=NR} /canvas:compile_assets/ {ca=NR} END {exit !(db && ca && db < ca)}' entrypoint.sh
   check "entrypoint uses separate first-run flags" grep -q '/data/.db_setup_complete' entrypoint.sh
+  check "entrypoint pins Canvas to a full commit SHA" grep -Eq '^CANVAS_REF=[0-9a-f]{40}$' entrypoint.sh
 
   check ".env is gitignored" git check-ignore -q .env
   check ".env.example has no secret values" sh -c "! grep -Eq '^(POSTGRES_PASSWORD|CANVAS_ADMIN_PASSWORD)=.+' .env.example"
@@ -96,6 +97,14 @@ runtime_tests() {
   done
   check "db is healthy" sh -c "docker compose ps db --format '{{.Health}}' | grep -qx healthy"
 
+  local pinned head
+  pinned="$(sed -n 's/^CANVAS_REF=//p' entrypoint.sh)"
+  head="$(dc exec -T web git -C /canvas rev-parse HEAD 2>/dev/null | tr -d '\r')"
+  if [ -n "$pinned" ] && [ "$head" = "$pinned" ]; then
+    pass "Canvas checkout matches pinned commit (${pinned:0:7})"
+  else
+    fail "Canvas checkout matches pinned commit" "pinned ${pinned:-none}, got ${head:-none}"
+  fi
 
   check "first-run DB setup flag present" dc exec -T web test -f /data/.db_setup_complete
   check "first-run asset compile flag present" dc exec -T web test -f /data/.setup_complete
