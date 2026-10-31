@@ -48,3 +48,6 @@ build/
 ## Logs
 log.txt
 *.log
+
+## Local secrets (never commit)
+.env

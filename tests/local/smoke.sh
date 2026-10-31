@@ -51,6 +51,11 @@ static_tests() {
   check "entrypoint seeds DB before compiling assets" \
     awk '/db:initial_setup/ {db=NR} /canvas:compile_assets/ {ca=NR} END {exit !(db && ca && db < ca)}' entrypoint.sh
   check "entrypoint uses separate first-run flags" grep -q '/data/.db_setup_complete' entrypoint.sh
+
+  check ".env is gitignored" git check-ignore -q .env
+  check ".env.example has no secret values" sh -c "! grep -Eq '^(POSTGRES_PASSWORD|CANVAS_ADMIN_PASSWORD)=.+' .env.example"
+  check "compose takes passwords only from env" sh -c "! grep -Eq '(POSTGRES_PASSWORD|ADMIN_PASSWORD): [^\$]' docker-compose.yml"
+  check "database.yml password comes from env" grep -q 'password: <%= ENV.fetch("DB_PASSWORD") %>' entrypoint.sh
 }
 
 image_tests() {
@@ -90,6 +95,14 @@ runtime_tests() {
     fi
   done
   check "db is healthy" sh -c "docker compose ps db --format '{{.Health}}' | grep -qx healthy"
+
+  local db_port
+  db_port="$(dc port db 5432 2>/dev/null)"
+  if [[ "$db_port" == 127.0.0.1:* ]] && nc -z 127.0.0.1 "${db_port##*:}" 2>/dev/null; then
+    pass "db reachable from host on localhost only ($db_port)"
+  else
+    fail "db reachable from host on localhost only" "got: ${db_port:-not published}"
+  fi
 
   check "first-run DB setup flag present" dc exec -T web test -f /data/.db_setup_complete
   check "first-run asset compile flag present" dc exec -T web test -f /data/.setup_complete

@@ -26,7 +26,8 @@ for config in amazon_s3 delayed_jobs domain file_store outgoing_mail security ex
   [ -f "config/$config.yml" ] || cp "config/$config.yml.example" "config/$config.yml"
 done
 
-# Write database config pointing at the postgres service
+# Write database config pointing at the postgres service. The password stays in
+# the environment (DB_PASSWORD, from .env); Rails evaluates the ERB at boot.
 cat > config/database.yml << 'EOF'
 development:
   adapter: postgresql
@@ -34,7 +35,7 @@ development:
   host: db
   port: 5432
   username: canvas
-  password: canvas
+  password: <%= ENV.fetch("DB_PASSWORD") %>
   timeout: 5000
 EOF
 
