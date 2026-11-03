@@ -109,6 +109,9 @@ runtime_tests() {
   check "first-run DB setup flag present" dc exec -T web test -f /data/.db_setup_complete
   check "first-run asset compile flag present" dc exec -T web test -f /data/.setup_complete
   check "redis.yml points at the redis service" dc exec -T web grep -q 'redis://redis:6379' config/redis.yml
+  for svc in web jobs; do
+    check "$svc stores uploads on their own volume" dc exec -T "$svc" sh -c "awk '\$5 == \"/canvas/tmp/files\"' /proc/self/mountinfo | grep -q ."
+  done
 
   local code
   code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 http://localhost:3000/login/canvas)"
