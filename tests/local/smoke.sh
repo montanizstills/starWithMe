@@ -97,6 +97,14 @@ runtime_tests() {
   done
   check "db is healthy" sh -c "docker compose ps db --format '{{.Health}}' | grep -qx healthy"
 
+  local db_port
+  db_port="$(dc port db 5432 2>/dev/null)"
+  if [[ "$db_port" == 127.0.0.1:* ]] && nc -z 127.0.0.1 "${db_port##*:}" 2>/dev/null; then
+    pass "db reachable from host on localhost only ($db_port)"
+  else
+    fail "db reachable from host on localhost only" "got: ${db_port:-not published}"
+  fi
+
   local pinned head
   pinned="$(sed -n 's/^CANVAS_REF=//p' entrypoint.sh)"
   head="$(dc exec -T web git -C /canvas rev-parse HEAD 2>/dev/null | tr -d '\r')"
