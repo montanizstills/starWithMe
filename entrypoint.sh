@@ -80,4 +80,8 @@ if [ ! -f /data/.setup_complete ]; then
   echo "Setup complete."
 fi
 
+# A crash leaves server.pid in the canvas-src volume and Rails then refuses to
+# boot. One server per container, so any pid file here is stale. See
+# docs/decisions/0001-stale-rails-pid-file.md for the trade-offs.
+rm -f tmp/pids/server.pid
 exec bundle exec rails server -b 0.0.0.0 -p 3000
