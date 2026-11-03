@@ -6,6 +6,18 @@ CANVAS_DIR=/canvas
 # this, then recreate the canvas-src volume (or check out the new ref in it).
 CANVAS_REF=1c9f0bb8013ed69c4f2efe11fd483025469b7e6c
 
+# Jobs worker: shares the web container's code volume, so wait for web to fetch
+# Canvas, install deps and finish first-run setup instead of racing it. Two
+# containers fetching into one empty volume at once collide on git's lock files.
+if [ "$1" = "jobs" ]; then
+  until [ -f /data/.setup_complete ]; do
+    echo "Waiting for web first-run setup to finish..."
+    sleep 15
+  done
+  cd "$CANVAS_DIR"
+  exec bundle exec script/delayed_job run
+fi
+
 # Fetch the pinned Canvas commit on first run
 if [ ! -f "$CANVAS_DIR/Gemfile" ]; then
   echo "Fetching Canvas LMS at $CANVAS_REF..."
@@ -18,16 +30,6 @@ cd "$CANVAS_DIR"
 
 if [ "$(git rev-parse HEAD 2>/dev/null)" != "$CANVAS_REF" ]; then
   echo "WARNING: /canvas is at $(git rev-parse --short HEAD 2>/dev/null), not pinned $CANVAS_REF"
-fi
-
-# Jobs worker: shares the web container's code volume, so wait for web to finish
-# installing deps and first-run setup instead of racing it.
-if [ "$1" = "jobs" ]; then
-  until [ -f /data/.setup_complete ]; do
-    echo "Waiting for web first-run setup to finish..."
-    sleep 15
-  done
-  exec bundle exec script/delayed_job run
 fi
 
 # Copy example configs (skip if already present)
