@@ -5,26 +5,54 @@ services:
       - "3000:3000"
     environment:
       RAILS_ENV: development
+      # Secrets come from .env (gitignored); see .env.example
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
       # Canvas initial-setup credentials (consumed once by db:initial_setup)
-      CANVAS_LMS_ADMIN_EMAIL: ${CANVAS_ADMIN_EMAIL:-admin@example.com}
-      CANVAS_LMS_ADMIN_PASSWORD: ${CANVAS_ADMIN_PASSWORD:-changeme}
+      CANVAS_LMS_ADMIN_EMAIL: ${CANVAS_ADMIN_EMAIL:?set CANVAS_ADMIN_EMAIL in .env}
+      CANVAS_LMS_ADMIN_PASSWORD: ${CANVAS_ADMIN_PASSWORD:?set CANVAS_ADMIN_PASSWORD in .env}
       CANVAS_LMS_ACCOUNT_NAME: ${CANVAS_ACCOUNT_NAME:-My Canvas}
       CANVAS_LMS_STATS_COLLECTION: opt_out
     volumes:
       - canvas-src:/canvas
       - canvas-data:/data
+      # Uploads (file_store path_prefix tmp/files) live apart from the code volume
+      - canvas-files:/canvas/tmp/files
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_started
 
+  # Background jobs (email, course imports/copies, file processing, exports)
+  jobs:
+    build: .
+    command: ["jobs"]
+    environment:
+      RAILS_ENV: development
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - canvas-src:/canvas
+      - canvas-data:/data
+      # Uploads (file_store path_prefix tmp/files) live apart from the code volume
+      - canvas-files:/canvas/tmp/files
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      web:
+        condition: service_started
+
   db:
     image: postgres:16-alpine
+    # Localhost only, for desktop DB tools (DBeaver etc.)
+    ports:
+      - "127.0.0.1:${DB_HOST_PORT:-5432}:5432"
     environment:
       POSTGRES_DB: canvas_development
       POSTGRES_USER: canvas
-      POSTGRES_PASSWORD: canvas
+      # Only applied when pgdata is first created; rotate later with ALTER USER
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -39,4 +67,5 @@ services:
 volumes:
   canvas-src:
   canvas-data:
+  canvas-files:
   pgdata:
