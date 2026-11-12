@@ -57,6 +57,7 @@ static_tests() {
   check ".env.example has no secret values" sh -c "! grep -Eq '^(POSTGRES_PASSWORD|CANVAS_ADMIN_PASSWORD)=.+' .env.example"
   check "compose takes passwords only from env" sh -c "! grep -Eq '(POSTGRES_PASSWORD|ADMIN_PASSWORD): [^\$]' docker-compose.yml"
   check "database.yml password comes from env" grep -q 'password: <%= ENV.fetch("DB_PASSWORD") %>' entrypoint.sh
+  check "start.sh offers --status" grep -q -- '--status)' start.sh
 }
 
 image_tests() {
@@ -124,6 +125,14 @@ runtime_tests() {
   local code
   code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 http://localhost:3000/login/canvas)"
   if [ "$code" = 200 ]; then pass "web serves /login/canvas (200)"; else fail "web serves /login/canvas (200)" "got HTTP $code"; fi
+
+  local status_out
+  status_out="$(STATUS_LOG="$(mktemp)" tests/local/status.sh 2>&1)"
+  if [ $? -eq 0 ] && grep -q '^Overall: OK' <<<"$status_out"; then
+    pass "./start.sh --status reports OK"
+  else
+    fail "./start.sh --status reports OK" "$(grep '^Overall:' <<<"$status_out")"
+  fi
 
   if dc exec -T jobs bundle plugin list 2>/dev/null | grep -q bundler-multilock; then
     pass "jobs container sees bundler-multilock plugin"
