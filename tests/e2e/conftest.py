@@ -4,8 +4,8 @@ The test student logs in, opens the example course, takes its Classic Quiz
 with the answer key from the course files and must score full marks.
 
   CANVAS_URL                Canvas base URL (default http://localhost:3000)
-  CANVAS_STUDENT_LOGIN      the SIS test student's login_id (no email), from the course users file
-  TEST_STUDENT_PASSWORD     that student's password; never printed
+  TEST_STUDENT_PASSWORD     the password of the course's sis_users[0] test student
+                            (the same value `courses apply` sets); never printed
   COURSE_DIR                course folder (default courses/example-playwright-browser-use)
 """
 import os
@@ -30,28 +30,20 @@ def course():
     if not course_file.is_file():
         pytest.fail(f"course file not found: {course_file}")
     data = yaml.safe_load(course_file.read_text())
-    quizzes = [
-        yaml.safe_load((course_dir / item["quiz"]).read_text())
-        for module in data["modules"]
-        for item in module.get("items", [])
-        if "quiz" in item
-    ]
+    # SWM-204: a lesson's quiz sits beside it as NNN-slug.quiz.yml, in number order.
+    quizzes = [yaml.safe_load(f.read_text()) for f in sorted(course_dir.glob("*.quiz.yml"))]
     if not quizzes:
-        pytest.fail(f"{course_file} has no quiz")
-    return {"title": data["title"], "quizzes": quizzes}
+        pytest.fail(f"{course_dir} has no *.quiz.yml")
+    if not data.get("sis_users"):
+        pytest.fail(f"{course_file} has no sis_users test student")
+    return {"title": data["name"], "quizzes": quizzes, "login": data["sis_users"][0]["login_id"]}
 
 
-def student_credentials():
-    login = os.environ.get("CANVAS_STUDENT_LOGIN")
+def log_in(page: Page, base_url: str, login: str) -> None:
     password = os.environ.get("TEST_STUDENT_PASSWORD")
-    # This is a release gate, so missing credentials fail instead of skipping.
-    if not (login and password):
-        pytest.fail("set CANVAS_STUDENT_LOGIN and TEST_STUDENT_PASSWORD")
-    return login, password
-
-
-def log_in(page: Page, base_url: str) -> None:
-    login, password = student_credentials()
+    # This is a release gate, so a missing password fails instead of skipping.
+    if not password:
+        pytest.fail("set TEST_STUDENT_PASSWORD")
     page.goto("/login/canvas")
     form = page.locator("#login_form")
     # Canvas labels the login_id field "Email" even for users without one.
@@ -62,12 +54,12 @@ def log_in(page: Page, base_url: str) -> None:
 
 
 @pytest.fixture(scope="session")
-def student_state(browser, base_url, tmp_path_factory):
+def student_state(browser, base_url, course, tmp_path_factory):
     # Log in once in a context of its own, so the password is typed outside the
     # page the test records; the session file stays in a temp dir.
     path = tmp_path_factory.mktemp("auth") / "student.storage.json"
     context = browser.new_context(base_url=base_url)
-    log_in(context.new_page(), base_url)
+    log_in(context.new_page(), base_url, course["login"])
     context.storage_state(path=path)
     context.close()
     return path

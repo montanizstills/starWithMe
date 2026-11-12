@@ -23,7 +23,8 @@ def start_attempt(page: Page, quiz_title: str) -> None:
 
 
 def answer(question: Locator, spec: dict, number: int) -> None:
-    wanted = {plain(a["text"]) for a in spec["answers"] if a.get("correct")}
+    # SWM-204 answer key: answer_weight 100 marks a correct answer.
+    wanted = {plain(a["answer_text"]) for a in spec["answers"] if a.get("answer_weight") == 100}
     found = set()
     answers = question.locator(".answer")
     for i in range(answers.count()):
@@ -48,7 +49,7 @@ def test_student_takes_quiz_and_gets_full_marks(student_page: Page, course: dict
 
         page.get_by_role("button", name="Submit Quiz").click()
 
-        points = f'{quiz["points_possible"]:g}'
+        points = f'{sum(q["points_possible"] for q in quiz["questions"]):g}'
         expect(page.locator("body"), f'"{quiz["title"]}" did not score full marks').to_contain_text(
             re.compile(rf"\b{points} out of {points}\b")
         )
