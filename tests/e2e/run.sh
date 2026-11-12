@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Student test runner (SWM-226 in CI, SWM-225 on staging).
-#   CANVAS_URL=... CANVAS_STUDENT_LOGIN=... CANVAS_STUDENT_PASSWORD=... tests/e2e/run.sh
+#   CANVAS_URL=... CANVAS_STUDENT_LOGIN=... TEST_STUDENT_PASSWORD=... tests/e2e/run.sh
 # Results land in tests/e2e/test-results (JUnit + failure screenshots).
 set -euo pipefail
 cd "$(dirname "$0")"

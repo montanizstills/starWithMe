@@ -4,8 +4,8 @@ The test student logs in, opens the example course, takes its Classic Quiz
 with the answer key from the course files and must score full marks.
 
   CANVAS_URL                Canvas base URL (default http://localhost:3000)
-  CANVAS_STUDENT_LOGIN      the SIS test student's login_id (no email)
-  CANVAS_STUDENT_PASSWORD   that student's password; never printed
+  CANVAS_STUDENT_LOGIN      the SIS test student's login_id (no email), from the course users file
+  TEST_STUDENT_PASSWORD     that student's password; never printed
   COURSE_DIR                course folder (default courses/example-playwright-browser-use)
 """
 import os
@@ -43,10 +43,10 @@ def course():
 
 def student_credentials():
     login = os.environ.get("CANVAS_STUDENT_LOGIN")
-    password = os.environ.get("CANVAS_STUDENT_PASSWORD")
+    password = os.environ.get("TEST_STUDENT_PASSWORD")
     # This is a release gate, so missing credentials fail instead of skipping.
     if not (login and password):
-        pytest.fail("set CANVAS_STUDENT_LOGIN and CANVAS_STUDENT_PASSWORD")
+        pytest.fail("set CANVAS_STUDENT_LOGIN and TEST_STUDENT_PASSWORD")
     return login, password
 
 
