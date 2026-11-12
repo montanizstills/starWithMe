@@ -54,7 +54,13 @@ static_tests() {
   check "entrypoint pins Canvas to a full commit SHA" grep -Eq '^CANVAS_REF=[0-9a-f]{40}$' entrypoint.sh
 
   check ".env is gitignored" git check-ignore -q .env
-  check ".env.example has no secret values" sh -c "! grep -Eq '^(POSTGRES_PASSWORD|CANVAS_ADMIN_PASSWORD)=.+' .env.example"
+  # The only line that prints $token must write it into the temp .env file
+  if grep -E '(echo|printf).*\$token' tools/canvas-api-token.sh | grep -vq '>> "\$tmp"$'; then
+    fail "API token script never prints the token"
+  else
+    pass "API token script never prints the token"
+  fi
+  check ".env.example has no secret values" sh -c "! grep -Eq '^(POSTGRES_PASSWORD|CANVAS_ADMIN_PASSWORD|CANVAS_API_TOKEN)=.+' .env.example"
   check "compose takes passwords only from env" sh -c "! grep -Eq '(POSTGRES_PASSWORD|ADMIN_PASSWORD): [^\$]' docker-compose.yml"
   check "database.yml password comes from env" grep -q 'password: <%= ENV.fetch("DB_PASSWORD") %>' entrypoint.sh
 }
