@@ -1,0 +1,27 @@
+# Keep the Docker build context small and secret-free. The image only COPYs
+# entrypoint.sh today, but the whole folder is still sent to Docker on every
+# build, and a later `COPY .` would bake whatever is here into the image (SWM-227).
+
+# Secrets: local .env files never leave the machine
+.env*
+!.env.example
+
+# Git history and editor/OS clutter
+.git
+.github
+.idea
+.vscode
+.DS_Store
+
+# Local data, logs and backups
+logs
+*.log
+backups
+courses
+canvas-lms
+target
+
+# Dependencies and test output
+node_modules
+test-results
+playwright-report
