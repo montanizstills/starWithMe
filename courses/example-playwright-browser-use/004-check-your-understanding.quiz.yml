@@ -1,0 +1,105 @@
+# Classic Quiz for lesson 004 (SWM-198). Written by hand, so reviewed: true.
+# Settings come from course.yml `defaults.quiz` (unlimited attempts, no time limit).
+# Field names are Canvas's own. Text fields are Markdown; courses apply renders
+# them to HTML (question_text, and answer_text sent as answer_html).
+# This file is the answer key the student test reads: answer_weight 100 = correct.
+reviewed: true
+title: "Check your understanding: browser automation"
+description: Six questions on Playwright and browser-use. Unlimited attempts, no time limit.
+
+questions:
+  - question_type: multiple_choice_question
+    points_possible: 1
+    question_text: Which locator is the most robust way to find the Email field on the Canvas login page?
+    answers:
+      - answer_text: '`page.locator("#login_form").get_by_label("Email")`'
+        answer_weight: 100
+      - answer_text: '`page.locator(".ic-Input.text").first`'
+        answer_weight: 0
+      - answer_text: '`page.locator("form > div:nth-child(2) > input")`'
+        answer_weight: 0
+      - answer_text: '`page.locator("xpath=//input[1]")`'
+        answer_weight: 0
+
+  - question_type: multiple_choice_question
+    points_possible: 1
+    question_text: |
+      This test is flaky: it sometimes fails because the Dashboard hasn't loaded yet.
+
+      ```python
+      def test_dashboard(page):
+          log_in(page)
+          time.sleep(2)
+          assert page.locator("h1").inner_text() == "Dashboard"
+      ```
+
+      What is the best fix?
+    answers:
+      - answer_text: 'Replace the sleep and the assert with `expect(page.locator("h1")).to_have_text("Dashboard")`'
+        answer_weight: 100
+      - answer_text: Increase the sleep to 5 seconds
+        answer_weight: 0
+      - answer_text: Wrap the assert in a `try`/`except` and retry three times
+        answer_weight: 0
+      - answer_text: Run the test headed so it is slower
+        answer_weight: 0
+
+  - question_type: true_false_question
+    points_possible: 1
+    question_text: A file saved with `context.storage_state(path=...)` contains session cookies and should never be committed to git.
+    answers:
+      - answer_text: "True"
+        answer_weight: 100
+      - answer_text: "False"
+        answer_weight: 0
+
+  - question_type: multiple_answers_question
+    points_possible: 1
+    question_text: Which of these are good uses for a browser-use agent? Select all that apply.
+    answers:
+      - answer_text: Exploring an unfamiliar app to find how a student reaches their grades
+        answer_weight: 100
+      - answer_text: Drafting the steps for a new Playwright test
+        answer_weight: 100
+      - answer_text: The required check that must pass on every pull request
+        answer_weight: 0
+      - answer_text: Load-testing Canvas with hundreds of parallel users
+        answer_weight: 0
+
+  - question_type: multiple_choice_question
+    points_possible: 1
+    question_text: |
+      Why does this agent pass credentials through `sensitive_data`?
+
+      ```python
+      agent = Agent(
+          task="Log in with username x_login and password x_password ...",
+          llm=llm,
+          sensitive_data={
+              "x_login": login_id,
+              "x_password": os.environ["TEST_STUDENT_PASSWORD"],
+          },
+      )
+      ```
+    answers:
+      - answer_text: So the model only sees the placeholder names, and the real values are typed by browser-use
+        answer_weight: 100
+      - answer_text: So the agent runs faster
+        answer_weight: 0
+      - answer_text: So the credentials are saved in the history file for replay
+        answer_weight: 0
+      - answer_text: Because Canvas rejects passwords typed by an agent
+        answer_weight: 0
+
+  - question_type: multiple_choice_question
+    points_possible: 1
+    question_text: What does `playwright codegen http://localhost:3000/login/canvas` do?
+    answers:
+      - answer_text: Opens a browser and writes Playwright code for the actions you perform
+        answer_weight: 100
+      - answer_text: Generates a full test suite for every page in Canvas
+        answer_weight: 0
+      - answer_text: Compiles your tests into a faster binary
+        answer_weight: 0
+      - answer_text: Downloads the Canvas source code
+        answer_weight: 0
