@@ -1,0 +1,85 @@
+# Manual deploy to private Oracle staging (SWM-222). Joins the tailnet, SSHes
+# to the VM, checks out the chosen ref and starts the stack with the cloud
+# override, then waits for /health_check over Tailscale. The VM keeps its own
+# .env (SWM-202); only the connection secrets below live in GitHub.
+name: deploy-staging
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Branch, tag or commit to deploy
+        required: true
+        default: dev
+
+permissions:
+  contents: read
+
+# One deploy at a time; never cancel one halfway through
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: staging
+    # A first deploy builds Canvas on the 2-OCPU VM (an hour or more)
+    timeout-minutes: 180
+    env:
+      REF: ${{ inputs.ref }}
+      STAGING_HOST: ${{ secrets.STAGING_HOST }}
+      STAGING_USER: ${{ vars.STAGING_USER || 'ubuntu' }}
+      STAGING_DIR: ${{ vars.STAGING_DIR || 'starWithMe' }}
+    steps:
+      - name: Check the ref name
+        run: |
+          [[ "$REF" =~ ^[A-Za-z0-9._/-]+$ ]] || { echo "Unsafe ref: $REF"; exit 1; }
+
+      - name: Join the tailnet
+        uses: tailscale/github-action@v3
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+
+      - name: Set up SSH
+        env:
+          STAGING_SSH_KEY: ${{ secrets.STAGING_SSH_KEY }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$STAGING_SSH_KEY" > ~/.ssh/staging
+          chmod 600 ~/.ssh/staging
+          # Trust the host key on first use; the VM is only reachable inside the tailnet
+          printf 'Host staging\n  HostName %s\n  User %s\n  IdentityFile ~/.ssh/staging\n  StrictHostKeyChecking accept-new\n  ServerAliveInterval 60\n' \
+            "$STAGING_HOST" "$STAGING_USER" > ~/.ssh/config
+
+      - name: Deploy
+        run: |
+          ssh staging bash -s -- "$REF" "$STAGING_DIR" <<'REMOTE'
+          set -euo pipefail
+          ref=$1; cd "$2"
+          git fetch -q --prune --tags origin
+          sha=$(git rev-parse --verify -q "origin/$ref^{commit}" || git rev-parse --verify "$ref^{commit}")
+          git checkout -q --detach "$sha"
+          echo "Deploying $ref at $(git rev-parse --short HEAD)"
+          test -f .env || { echo "No .env on the VM (SWM-202 step 6)"; exit 1; }
+          docker compose -f docker-compose.yml -f docker-compose.cloud.yml up -d --build --remove-orphans
+          docker compose -f docker-compose.yml -f docker-compose.cloud.yml ps
+          REMOTE
+
+      - name: Wait for Canvas over Tailscale
+        run: |
+          for i in $(seq 1 120); do
+            code=$(curl -s -o /dev/null -m 10 -w '%{http_code}' "http://$STAGING_HOST:3000/health_check" || true)
+            [ "$code" = 200 ] && { echo "Canvas is up (HTTP 200 after $((i * 60 - 60))s)"; exit 0; }
+            echo "Waiting for Canvas (HTTP $code)..."
+            sleep 60
+          done
+          echo "Canvas did not come up in 2 hours"; exit 1
+
+      - name: Stack status on failure
+        if: failure()
+        run: |
+          ssh staging "cd '$STAGING_DIR' && docker compose -f docker-compose.yml -f docker-compose.cloud.yml ps && docker compose -f docker-compose.yml -f docker-compose.cloud.yml logs --tail 100 web jobs" \
+            | grep -viE 'password|secret|token' || true
