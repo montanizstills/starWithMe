@@ -48,6 +48,20 @@ static_tests() {
     fail "jobs service runs entrypoint in jobs mode"
   fi
 
+  # Staging override (SWM-222): only web publishes, and only on WEB_BIND (never 0.0.0.0)
+  local cloud
+  cloud="$(dc -f docker-compose.yml -f docker-compose.cloud.yml config --format json 2>/dev/null)"
+  if [ "$(jq -c '[.services[] | .ports[]? | .host_ip // "0.0.0.0"]' <<<"$cloud")" = '["127.0.0.1"]' ]; then
+    pass "cloud override publishes only web, on 127.0.0.1 by default"
+  else
+    fail "cloud override publishes only web, on 127.0.0.1 by default" "$(jq -c '[.services | to_entries[] | {(.key): [.value.ports[]? | .host_ip // "0.0.0.0"]}]' <<<"$cloud")"
+  fi
+  if [ "$(jq -r '[.services.web, .services.jobs | .environment.SHOW_PRODUCTION_ERRORS] | join(",")' <<<"$cloud")" = "true,true" ]; then
+    pass "cloud override hides error details (SHOW_PRODUCTION_ERRORS)"
+  else
+    fail "cloud override hides error details (SHOW_PRODUCTION_ERRORS)"
+  fi
+
   check "entrypoint seeds DB before compiling assets" \
     awk '/db:initial_setup/ {db=NR} /canvas:compile_assets/ {ca=NR} END {exit !(db && ca && db < ca)}' entrypoint.sh
   check "entrypoint uses separate first-run flags" grep -q '/data/.db_setup_complete' entrypoint.sh

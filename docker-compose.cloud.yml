@@ -1,0 +1,26 @@
+# Staging override for the private Oracle VM (SWM-222). Use with:
+#   docker compose -f docker-compose.yml -f docker-compose.cloud.yml up -d
+# Staging is private first: nothing is reachable from the internet. Canvas
+# listens only on WEB_BIND, which the VM's .env sets to its Tailscale address
+# (127.0.0.1 if unset). Postgres and Redis publish no ports at all.
+
+services:
+  web:
+    ports: !override
+      - "${WEB_BIND:-127.0.0.1}:3000:3000"
+    environment:
+      # Generic error pages instead of stack traces, even in development mode (SWM-201)
+      SHOW_PRODUCTION_ERRORS: "true"
+    restart: unless-stopped
+
+  jobs:
+    environment:
+      SHOW_PRODUCTION_ERRORS: "true"
+    restart: unless-stopped
+
+  db:
+    ports: !reset []
+    restart: unless-stopped
+
+  redis:
+    restart: unless-stopped
