@@ -11,6 +11,10 @@ on:
         description: Branch, tag or commit to deploy
         required: true
         default: dev
+      wait_minutes:
+        description: How long to wait for /health_check (a first deploy on 1 OCPU takes hours)
+        required: true
+        default: '330'
 
 permissions:
   contents: read
@@ -24,10 +28,14 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     environment: staging
-    # A first deploy builds Canvas on the 2-OCPU VM (an hour or more)
-    timeout-minutes: 180
+    # A first deploy runs bundle/yarn/asset compile on the 1-OCPU VM, which can
+    # take hours. 355 is just under GitHub's 360-minute job limit. If it runs
+    # out, the stack keeps going on the VM (detached, restart: unless-stopped);
+    # re-run with the same ref to keep waiting.
+    timeout-minutes: 355
     env:
       REF: ${{ inputs.ref }}
+      WAIT_MINUTES: ${{ inputs.wait_minutes }}
       STAGING_HOST: ${{ secrets.STAGING_HOST }}
       STAGING_USER: ${{ vars.STAGING_USER || 'ubuntu' }}
       STAGING_DIR: ${{ vars.STAGING_DIR || 'starWithMe' }}
@@ -35,6 +43,7 @@ jobs:
       - name: Check the ref name
         run: |
           [[ "$REF" =~ ^[A-Za-z0-9._/-]+$ ]] || { echo "Unsafe ref: $REF"; exit 1; }
+          [[ "$WAIT_MINUTES" =~ ^[0-9]+$ ]] || { echo "wait_minutes must be a number"; exit 1; }
 
       - name: Join the tailnet
         uses: tailscale/github-action@v3
@@ -51,9 +60,11 @@ jobs:
           printf '%s\n' "$STAGING_SSH_KEY" > ~/.ssh/staging
           chmod 600 ~/.ssh/staging
           # Trust the host key on first use; the VM is only reachable inside the tailnet
-          printf 'Host staging\n  HostName %s\n  User %s\n  IdentityFile ~/.ssh/staging\n  StrictHostKeyChecking accept-new\n  ServerAliveInterval 60\n' \
+          printf 'Host staging\n  HostName %s\n  User %s\n  IdentityFile ~/.ssh/staging\n  StrictHostKeyChecking accept-new\n  ServerAliveInterval 30\n  ServerAliveCountMax 10\n' \
             "$STAGING_HOST" "$STAGING_USER" > ~/.ssh/config
 
+      # Builds the image and starts the stack detached. The image build is short;
+      # the long first-run setup happens inside web after this step.
       - name: Deploy
         run: |
           ssh staging bash -s -- "$REF" "$STAGING_DIR" <<'REMOTE'
@@ -68,15 +79,22 @@ jobs:
           docker compose -f docker-compose.yml -f docker-compose.cloud.yml ps
           REMOTE
 
+      # Polls once a minute and, every 5 minutes, shows web's latest log lines so
+      # a long first-run setup shows progress. Each SSH call is short.
       - name: Wait for Canvas over Tailscale
         run: |
-          for i in $(seq 1 120); do
+          for i in $(seq 1 "$WAIT_MINUTES"); do
             code=$(curl -s -o /dev/null -m 10 -w '%{http_code}' "http://$STAGING_HOST:3000/health_check" || true)
-            [ "$code" = 200 ] && { echo "Canvas is up (HTTP 200 after $((i * 60 - 60))s)"; exit 0; }
-            echo "Waiting for Canvas (HTTP $code)..."
+            [ "$code" = 200 ] && { echo "Canvas is up (HTTP 200 after $((i - 1)) min)"; exit 0; }
+            echo "Waiting for Canvas (HTTP $code, $((i - 1)) min)..."
+            if [ $((i % 5)) = 1 ]; then
+              ssh staging "cd '$STAGING_DIR' && docker compose -f docker-compose.yml -f docker-compose.cloud.yml logs --no-log-prefix --tail 3 web" 2>&1 \
+                | grep -viE 'password|secret|token' | sed 's/^/  web | /' || true
+            fi
             sleep 60
           done
-          echo "Canvas did not come up in 2 hours"; exit 1
+          echo "Canvas did not come up in $WAIT_MINUTES minutes. The stack is still running on the VM; re-run with the same ref to keep waiting."
+          exit 1
 
       - name: Stack status on failure
         if: failure()
