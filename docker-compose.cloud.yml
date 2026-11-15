@@ -3,9 +3,13 @@
 # Staging is private first: nothing is reachable from the internet. Canvas
 # listens only on WEB_BIND, which the VM's .env sets to its Tailscale address
 # (127.0.0.1 if unset). Postgres and Redis publish no ports at all.
+# The VM never builds Canvas (1 OCPU is too small): it pulls CANVAS_IMAGE
+# from GHCR (SWM-229).
 
 services:
   web:
+    image: ${CANVAS_IMAGE:-ghcr.io/montanizstills/starwithme-canvas:latest}
+    build: !reset null
     ports: !override
       - "${WEB_BIND:-127.0.0.1}:3000:3000"
     environment:
@@ -14,6 +18,7 @@ services:
     restart: unless-stopped
 
   jobs:
+    image: ${CANVAS_IMAGE:-ghcr.io/montanizstills/starwithme-canvas:latest}
     environment:
       SHOW_PRODUCTION_ERRORS: "true"
     restart: unless-stopped

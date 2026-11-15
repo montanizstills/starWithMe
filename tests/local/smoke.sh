@@ -5,7 +5,7 @@
 #
 #   tests/local/smoke.sh            # all sections
 #   tests/local/smoke.sh static     # repo + compose only, no containers needed
-#   tests/local/smoke.sh image      # built image only
+#   tests/local/smoke.sh image      # built image only (CANVAS_IMAGE, or the local build)
 #   tests/local/smoke.sh runtime    # running stack only
 
 set -uo pipefail
@@ -14,6 +14,7 @@ ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$ROOT"
 
 JOB_TIMEOUT="${JOB_TIMEOUT:-60}"
+CANVAS_URL="${CANVAS_URL:-http://localhost:3000}"
 PASS=0
 FAIL=0
 FAILED=()
@@ -62,15 +63,22 @@ static_tests() {
     fail "cloud override hides error details (SHOW_PRODUCTION_ERRORS)"
   fi
 
-  check "entrypoint seeds DB before compiling assets" \
-    awk '/db:initial_setup/ {db=NR} /canvas:compile_assets/ {ca=NR} END {exit !(db && ca && db < ca)}' entrypoint.sh
-  check "entrypoint uses separate first-run flags" grep -q '/data/.db_setup_complete' entrypoint.sh
-  check "entrypoint pins Canvas to a full commit SHA" grep -Eq '^CANVAS_REF=[0-9a-f]{40}$' entrypoint.sh
+  # Prebuilt image (SWM-229): Canvas is compiled at build time, never at start
+  check "image compiles Canvas assets at build time" grep -q 'rails canvas:compile_assets' Dockerfile
+  check "entrypoint never compiles or installs" sh -c "! grep -Eq 'compile_assets|bundle install|yarn install' entrypoint.sh"
+  check "Dockerfile pins Canvas to a full commit SHA" grep -Eq '^ARG CANVAS_REF=[0-9a-f]{40}$' Dockerfile
+  check "entrypoint uses a first-run DB flag" grep -q '/data/.db_setup_complete' entrypoint.sh
+  check "compose keeps no Canvas code volume" sh -c "! grep -q canvas-src docker-compose.yml"
+  if [ "$(jq -c '[.services.web.build, .services.jobs.build]' <<<"$cloud")" = '[null,null]' ]; then
+    pass "cloud override pulls the image and never builds"
+  else
+    fail "cloud override pulls the image and never builds"
+  fi
 
   check ".env is gitignored" git check-ignore -q .env
   check ".env.example has no secret values" sh -c "! grep -Eq '^(POSTGRES_PASSWORD|CANVAS_ADMIN_PASSWORD)=.+' .env.example"
   check "compose takes passwords only from env" sh -c "! grep -Eq '(POSTGRES_PASSWORD|ADMIN_PASSWORD): [^\$]' docker-compose.yml"
-  check "database.yml password comes from env" grep -q 'password: <%= ENV.fetch("DB_PASSWORD") %>' entrypoint.sh
+  check "database.yml password comes from env" grep -q 'password: <%= ENV.fetch("DB_PASSWORD") %>' Dockerfile
 }
 
 image_tests() {
@@ -89,12 +97,35 @@ image_tests() {
     zlib1g-dev libldap2-dev libsqlite3-dev libyaml-dev libxmlsec1-dev pkg-config 2>&1 | grep -i 'no packages' || true)"
   if [ -z "$missing" ]; then pass "native gem build libs installed"; else fail "native gem build libs installed" "$missing"; fi
 
-  local env
-  env="$(in_image env 2>/dev/null)"
-  if grep -q '^BUNDLE_APP_CONFIG=/canvas/.bundle$' <<<"$env" && grep -q '^BUNDLE_PATH=/canvas/vendor/bundle$' <<<"$env"; then
-    pass "bundler config and gems point into the shared volume"
+  section "Image: prebuilt Canvas (SWM-229)"
+
+  local pinned rev
+  pinned="$(sed -n 's/^ARG CANVAS_REF=//p' Dockerfile)"
+  rev="$(in_image cat REVISION 2>/dev/null | tr -d '\r')"
+  if [ -n "$pinned" ] && [ "$rev" = "$pinned" ]; then
+    pass "image holds the pinned Canvas commit (${pinned:0:7})"
   else
-    fail "bundler config and gems point into the shared volume"
+    fail "image holds the pinned Canvas commit" "Dockerfile ${pinned:-none}, image ${rev:-none}"
+  fi
+  check "gems are installed in the image" in_image bundle check
+  check "compiled assets are in the image" in_image sh -c 'ls public/dist/webpack-dev/*.js >/dev/null'
+  check "node modules were left out of the image" in_image sh -c '! find /canvas -name node_modules -type d -print -quit | grep -q .'
+
+  # No secrets baked in: no .env files, and no credential-looking variables
+  local found
+  found="$(in_image sh -c 'find / -xdev \( -name .env -o -name "*.env" -o -name .env.local \) -not -path "/proc/*" 2>/dev/null' | tr -d '\r')"
+  if [ -z "$found" ]; then pass "no .env files in the image"; else fail "no .env files in the image" "$found"; fi
+  local image
+  image="$(dc config --images 2>/dev/null | grep -m1 canvas)"
+  found="$(docker image inspect --format '{{range .Config.Env}}{{println .}}{{end}}' "$image" 2>/dev/null \
+    | grep -iE 'password|secret|token|_key=' || true)"
+  if [ -z "$found" ]; then pass "no credentials in the image's environment"; else fail "no credentials in the image's environment" "$found"; fi
+  # The build's DB_PASSWORD placeholder is set inline in the build stage only
+  if docker image inspect "$image" >/dev/null 2>&1 \
+    && ! { docker image inspect "$image"; docker history --no-trunc "$image"; } 2>/dev/null | grep -q DB_PASSWORD; then
+    pass "DB_PASSWORD is not in the image's config or history"
+  else
+    fail "DB_PASSWORD is not in the image's config or history"
   fi
 }
 
@@ -119,24 +150,23 @@ runtime_tests() {
     fail "db reachable from host on localhost only" "got: ${db_port:-not published}"
   fi
 
-  local pinned head
-  pinned="$(sed -n 's/^CANVAS_REF=//p' entrypoint.sh)"
-  head="$(dc exec -T web git -C /canvas rev-parse HEAD 2>/dev/null | tr -d '\r')"
-  if [ -n "$pinned" ] && [ "$head" = "$pinned" ]; then
-    pass "Canvas checkout matches pinned commit (${pinned:0:7})"
+  local pinned rev
+  pinned="$(sed -n 's/^ARG CANVAS_REF=//p' Dockerfile)"
+  rev="$(dc exec -T web cat /data/.migrated_ref 2>/dev/null | tr -d '\r')"
+  if [ -n "$pinned" ] && [ "$rev" = "$pinned" ]; then
+    pass "database is set up for the pinned Canvas commit (${pinned:0:7})"
   else
-    fail "Canvas checkout matches pinned commit" "pinned ${pinned:-none}, got ${head:-none}"
+    fail "database is set up for the pinned Canvas commit" "pinned ${pinned:-none}, got ${rev:-none}"
   fi
 
   check "first-run DB setup flag present" dc exec -T web test -f /data/.db_setup_complete
-  check "first-run asset compile flag present" dc exec -T web test -f /data/.setup_complete
   check "redis.yml points at the redis service" dc exec -T web grep -q 'redis://redis:6379' config/redis.yml
   for svc in web jobs; do
     check "$svc stores uploads on their own volume" dc exec -T "$svc" sh -c "awk '\$5 == \"/canvas/tmp/files\"' /proc/self/mountinfo | grep -q ."
   done
 
   local code
-  code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 http://localhost:3000/login/canvas)"
+  code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 "$CANVAS_URL/login/canvas")"
   if [ "$code" = 200 ]; then pass "web serves /login/canvas (200)"; else fail "web serves /login/canvas (200)" "got HTTP $code"; fi
 
   if dc exec -T jobs bundle plugin list 2>/dev/null | grep -q bundler-multilock; then

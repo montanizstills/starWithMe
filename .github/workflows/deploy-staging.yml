@@ -1,5 +1,6 @@
 # Manual deploy to private Oracle staging (SWM-222). Joins the tailnet, SSHes
-# to the VM, checks out the chosen ref and starts the stack with the cloud
+# to the VM, checks out the chosen ref, pulls the prebuilt Canvas image from
+# GHCR (SWM-229; the VM never builds) and starts the stack with the cloud
 # override, then waits for /health_check over Tailscale. The VM keeps its own
 # .env (SWM-202); only the connection secrets below live in GitHub.
 name: deploy-staging
@@ -11,10 +12,14 @@ on:
         description: Branch, tag or commit to deploy
         required: true
         default: dev
-      wait_minutes:
-        description: How long to wait for /health_check (a first deploy on 1 OCPU takes hours)
+      image_tag:
+        description: Canvas image tag in ghcr.io/montanizstills/starwithme-canvas (from the build-image workflow)
         required: true
-        default: '330'
+        default: latest
+      wait_minutes:
+        description: How long to wait for /health_check
+        required: true
+        default: '30'
 
 permissions:
   contents: read
@@ -28,13 +33,13 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     environment: staging
-    # A first deploy runs bundle/yarn/asset compile on the 1-OCPU VM, which can
-    # take hours. 355 is just under GitHub's 360-minute job limit. If it runs
+    # Pulling a few GB and the first database setup on the 1-OCPU VM. If it runs
     # out, the stack keeps going on the VM (detached, restart: unless-stopped);
-    # re-run with the same ref to keep waiting.
-    timeout-minutes: 355
+    # re-run with the same ref to keep waiting. GitHub's job limit is 360.
+    timeout-minutes: 90
     env:
       REF: ${{ inputs.ref }}
+      CANVAS_IMAGE: ghcr.io/montanizstills/starwithme-canvas:${{ inputs.image_tag }}
       WAIT_MINUTES: ${{ inputs.wait_minutes }}
       STAGING_HOST: ${{ secrets.STAGING_HOST }}
       STAGING_USER: ${{ vars.STAGING_USER || 'ubuntu' }}
@@ -43,6 +48,7 @@ jobs:
       - name: Check the ref name
         run: |
           [[ "$REF" =~ ^[A-Za-z0-9._/-]+$ ]] || { echo "Unsafe ref: $REF"; exit 1; }
+          [[ "$CANVAS_IMAGE" =~ ^[a-z0-9./-]+:[A-Za-z0-9._-]+$ ]] || { echo "Unsafe image tag: $CANVAS_IMAGE"; exit 1; }
           [[ "$WAIT_MINUTES" =~ ^[0-9]+$ ]] || { echo "wait_minutes must be a number"; exit 1; }
 
       - name: Join the tailnet
@@ -63,19 +69,22 @@ jobs:
           printf 'Host staging\n  HostName %s\n  User %s\n  IdentityFile ~/.ssh/staging\n  StrictHostKeyChecking accept-new\n  ServerAliveInterval 30\n  ServerAliveCountMax 10\n' \
             "$STAGING_HOST" "$STAGING_USER" > ~/.ssh/config
 
-      # Builds the image and starts the stack detached. The image build is short;
-      # the long first-run setup happens inside web after this step.
+      # Pulls the image and starts the stack detached; first-run database setup
+      # happens inside web after this step. A private package needs a one-time
+      # `docker login ghcr.io` on the VM with a read-only token (SWM-202).
       - name: Deploy
         run: |
-          ssh staging bash -s -- "$REF" "$STAGING_DIR" <<'REMOTE'
+          ssh staging bash -s -- "$REF" "$STAGING_DIR" "$CANVAS_IMAGE" <<'REMOTE'
           set -euo pipefail
-          ref=$1; cd "$2"
+          ref=$1; cd "$2"; export CANVAS_IMAGE=$3
           git fetch -q --prune --tags origin
           sha=$(git rev-parse --verify -q "origin/$ref^{commit}" || git rev-parse --verify "$ref^{commit}")
           git checkout -q --detach "$sha"
           echo "Deploying $ref at $(git rev-parse --short HEAD)"
           test -f .env || { echo "No .env on the VM (SWM-202 step 6)"; exit 1; }
-          docker compose -f docker-compose.yml -f docker-compose.cloud.yml up -d --build --remove-orphans
+          echo "Pulling $CANVAS_IMAGE"
+          docker compose -f docker-compose.yml -f docker-compose.cloud.yml pull --quiet web
+          docker compose -f docker-compose.yml -f docker-compose.cloud.yml up -d --remove-orphans
           docker compose -f docker-compose.yml -f docker-compose.cloud.yml ps
           REMOTE
 

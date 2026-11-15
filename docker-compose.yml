@@ -1,5 +1,9 @@
 services:
   web:
+    # Canvas, its gems and compiled assets are baked into this image (SWM-229).
+    # The Mac builds it locally (starwithme-canvas:local); set CANVAS_IMAGE in
+    # .env to run a published ghcr.io/montanizstills/starwithme-canvas tag instead.
+    image: ${CANVAS_IMAGE:-starwithme-canvas:local}
     build: .
     ports:
       - "3000:3000"
@@ -13,9 +17,8 @@ services:
       CANVAS_LMS_ACCOUNT_NAME: ${CANVAS_ACCOUNT_NAME:-My Canvas}
       CANVAS_LMS_STATS_COLLECTION: opt_out
     volumes:
-      - canvas-src:/canvas
       - canvas-data:/data
-      # Uploads (file_store path_prefix tmp/files) live apart from the code volume
+      # Uploads (file_store path_prefix tmp/files); the code itself is in the image
       - canvas-files:/canvas/tmp/files
     depends_on:
       db:
@@ -25,15 +28,14 @@ services:
 
   # Background jobs (email, course imports/copies, file processing, exports)
   jobs:
-    build: .
+    # Same image as web; web's build section builds it
+    image: ${CANVAS_IMAGE:-starwithme-canvas:local}
     command: ["jobs"]
     environment:
       RAILS_ENV: development
       DB_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
     volumes:
-      - canvas-src:/canvas
       - canvas-data:/data
-      # Uploads (file_store path_prefix tmp/files) live apart from the code volume
       - canvas-files:/canvas/tmp/files
     depends_on:
       db:
@@ -65,7 +67,6 @@ services:
     image: redis:7-alpine
 
 volumes:
-  canvas-src:
   canvas-data:
   canvas-files:
   pgdata:
