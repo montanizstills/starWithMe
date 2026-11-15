@@ -7,7 +7,8 @@ usage() {
 Usage: ./start.sh [OPTION]
 
 Options:
-  --local       Run Canvas locally via Docker Compose (Postgres + Redis + web)
+  --local       Run Canvas locally via Docker Compose (Postgres + Redis + web),
+                then add the example course once Canvas is up
   --codespace   Install Canvas inside a GitHub Codespace and start the Rails server
   --test        Run the local smoke tests against the running stack
   -h, --help    Show this help message
@@ -26,6 +27,9 @@ fi
 
 case "$1" in
   --local)
+    # Add the example course once Canvas is up, without holding up the logs (SWM-207)
+    tools/apply-example-course.sh &
+    trap 'kill $! 2>/dev/null' EXIT
     docker compose up
     ;;
   --codespace)

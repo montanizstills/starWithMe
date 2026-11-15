@@ -54,6 +54,7 @@ static_tests() {
   check "entrypoint pins Canvas to a full commit SHA" grep -Eq '^CANVAS_REF=[0-9a-f]{40}$' entrypoint.sh
 
   check ".env is gitignored" git check-ignore -q .env
+  check "start.sh --local adds the example course in the background" grep -q '^ *tools/apply-example-course.sh &$' start.sh
   check ".dockerignore keeps .env and .git out of builds" \
     sh -c "grep -qx '.env\*' .dockerignore && grep -qx '!.env.example' .dockerignore && grep -qx '.git' .dockerignore"
   check ".env.example has no secret values" sh -c "! grep -Eq '^(POSTGRES_PASSWORD|CANVAS_ADMIN_PASSWORD)=.+' .env.example"
