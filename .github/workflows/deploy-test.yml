@@ -1,5 +1,7 @@
-# M0 deployment test (SWM-22): every PR into dev builds the Canvas image,
-# starts the full stack with throwaway secrets and runs the local smoke tests.
+# M0 deployment test (SWM-22): every PR into dev gets the Canvas image, starts
+# the full stack with throwaway secrets and runs the local smoke tests. The
+# image is pulled from GHCR when one is published for this Dockerfile and
+# entrypoint (SWM-229), and built here otherwise.
 # Branch protection requires this check before anything merges to dev (SWM-33).
 name: deploy-test
 
@@ -10,6 +12,7 @@ on:
 
 permissions:
   contents: read
+  packages: read
 
 concurrency:
   group: deploy-test-${{ github.ref }}
@@ -18,8 +21,8 @@ concurrency:
 jobs:
   deploy-test:
     runs-on: ubuntu-latest
-    # First run compiles Canvas assets (30-60 min locally)
-    timeout-minutes: 150
+    # Pulling takes minutes; building Canvas when no image is published takes 1-2 hours
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
 
@@ -43,9 +46,18 @@ jobs:
             echo "CANVAS_ADMIN_PASSWORD=$admin_pw"
           } > .env
 
-      # SWM-30
-      - name: Build the Canvas image
-        run: docker compose build
+      # SWM-30, SWM-229
+      - name: Get the Canvas image
+        run: |
+          image="ghcr.io/montanizstills/starwithme-canvas:$(tools/canvas-image-tag.sh)"
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          if docker pull -q "$image"; then
+            echo "CANVAS_IMAGE=$image" >> .env
+            echo "Pulled $image"
+          else
+            echo "No published image for this Dockerfile and entrypoint ($image); building it"
+            docker compose build --progress=plain
+          fi
 
       - name: Static and image checks
         run: tests/local/smoke.sh static && tests/local/smoke.sh image
@@ -53,9 +65,9 @@ jobs:
       - name: Start the stack
         run: docker compose up -d
 
-      - name: Wait for Canvas (first-run setup and asset compile)
+      - name: Wait for Canvas (first-run database setup)
         run: |
-          for i in $(seq 1 240); do
+          for i in $(seq 1 60); do
             code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 http://localhost:3000/health_check || true)"
             if [ "$code" = 200 ]; then echo "Canvas up after ~$((i / 2)) min"; exit 0; fi
             if [ "$(docker compose ps web --status running -q | wc -l)" = 0 ]; then
@@ -63,7 +75,7 @@ jobs:
             fi
             sleep 30
           done
-          echo "Canvas not up after 120 min"; exit 1
+          echo "Canvas not up after 30 min"; exit 1
 
       # SWM-32: any failed check fails the job
       - name: Smoke tests
