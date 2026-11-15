@@ -60,6 +60,8 @@ static_tests() {
   else
     pass "API token script never prints the token"
   fi
+  check ".dockerignore keeps .env and .git out of builds" \
+    sh -c "grep -qx '.env\*' .dockerignore && grep -qx '!.env.example' .dockerignore && grep -qx '.git' .dockerignore"
   check ".env.example has no secret values" sh -c "! grep -Eq '^(POSTGRES_PASSWORD|CANVAS_ADMIN_PASSWORD|CANVAS_API_TOKEN)=.+' .env.example"
   check "compose takes passwords only from env" sh -c "! grep -Eq '(POSTGRES_PASSWORD|ADMIN_PASSWORD): [^\$]' docker-compose.yml"
   check "database.yml password comes from env" grep -q 'password: <%= ENV.fetch("DB_PASSWORD") %>' entrypoint.sh
