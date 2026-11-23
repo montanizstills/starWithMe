@@ -9,6 +9,7 @@
 #   bash <(curl -fsSL <raw URL>) student [ref]               default: dev
 #   bash <(curl -fsSL <raw URL>) status
 #   bash <(curl -fsSL <raw URL>) check                    proof for SWM-202 / SWM-36, no secrets
+#   bash <(curl -fsSL <raw URL>) smoke   [ref]               smoke tests on this stack (SWM-38, SWM-201)
 #
 # Works in ~/starWithMe (setup-staging-env.sh creates it). Never prints a secret.
 # The test student's password lives in the VM's .env as TEST_STUDENT_PASSWORD;
@@ -114,6 +115,20 @@ case "$cmd" in
     PLAYWRIGHT_DEPS=1 tests/e2e/run.sh && echo "== PASSED. Report: $DIR/tests/e2e/test-results/junit.xml"
     ;;
 
+  smoke)
+    # SWM-38: the image and runtime smoke sections against this VM's stack,
+    # over the Tailscale address. Includes the SWM-201 error-page check.
+    ref=${1:-dev}
+    checkout "$ref"
+    need_canvas
+    export CANVAS_URL SMOKE_TARGET=staging
+    rc=0
+    tests/local/smoke.sh image || rc=1
+    tests/local/smoke.sh runtime || rc=1
+    if [ "$rc" = 0 ]; then echo "== SMOKE PASSED at $(git rev-parse --short HEAD)"; else echo "== SMOKE FAILED at $(git rev-parse --short HEAD)"; fi
+    exit "$rc"
+    ;;
+
   status)
     echo "== $(git rev-parse --short HEAD 2>/dev/null) checked out"
     "${COMPOSE[@]}" ps
@@ -147,6 +162,6 @@ case "$cmd" in
     ;;
 
   *)
-    echo "Usage: staging.sh deploy [ref] [image_tag] | inject [ref] [course] | student [ref] | status | check"
+    echo "Usage: staging.sh deploy [ref] [image_tag] | inject [ref] [course] | student [ref] | smoke [ref] | status | check"
     ;;
 esac
