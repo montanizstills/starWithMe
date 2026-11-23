@@ -1,6 +1,6 @@
 # Make a Canvas API token for the site admin and print it as one line,
 # TOKEN=<token>, on stdout. Everything else goes to stderr. Shared by
-# deploy-test (CI), the staging inject scripts and tools/canvas-api-token.sh.
+# deploy-test (CI), the staging inject scripts and tools/apply-example-course.sh.
 #
 #   docker compose exec -T -e TOKEN_PURPOSE="..." web \
 #     bundle exec rails runner "$(cat tools/canvas-token.rb)" 2>runner.err | sed -n 's/^TOKEN=//p'

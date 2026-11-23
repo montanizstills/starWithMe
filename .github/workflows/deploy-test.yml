@@ -112,6 +112,16 @@ jobs:
             echo "::warning::example course not on this branch; student test not run"
           fi
 
+      # SWM-207: the hook ./start.sh --local runs. It makes its own token into
+      # .env, then applies the example course, which is already there: 0 changes.
+      - name: start.sh hook adds the example course (SWM-207)
+        run: |
+          out="$(tools/apply-example-course.sh 2>&1)"
+          echo "$out"
+          grep -q "token written" <<<"$out"
+          grep -q "Example course applied: 0 change(s)." <<<"$out"
+          grep -c '^CANVAS_API_TOKEN=.' .env
+
       - name: Stack logs on failure
         if: failure()
         run: docker compose logs --no-color --tail 300 > stack.log 2>&1 || true
