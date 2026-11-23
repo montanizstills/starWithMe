@@ -1,0 +1,304 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/montanizstills/starWithMe/tools/courses/course-format.schema.json",
+  "title": "starWithMe course folder format (SWM-204)",
+  "description": "One folder = one Canvas course. Each NNN-slug.md note is one lesson (a module with its page and, optionally, the Classic Quiz in NNN-slug.quiz.yml). Field names are Canvas's own API names; unknown fields are errors. Text fields are Markdown, rendered to HTML by courses apply.",
+  "$defs": {
+    "course": {
+      "description": "Optional course.yml: course settings, quiz defaults and the test students.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Canvas course name (courses.csv long_name)."
+        },
+        "course_code": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Canvas course code (courses.csv short_name)."
+        },
+        "default_view": {
+          "enum": [
+            "feed",
+            "wiki",
+            "modules",
+            "assignments",
+            "syllabus"
+          ]
+        },
+        "public_description": {
+          "type": "string"
+        },
+        "defaults": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "quiz": {
+              "$ref": "#/$defs/quiz_settings"
+            }
+          }
+        },
+        "sis_users": {
+          "type": "array",
+          "description": "SIS Import users.csv rows. Each one is enrolled in this course as an active student. Passwords never go here: courses apply reads TEST_STUDENT_PASSWORD.",
+          "items": {
+            "$ref": "#/$defs/sis_user"
+          }
+        }
+      }
+    },
+    "sis_user": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "user_id",
+        "login_id"
+      ],
+      "properties": {
+        "user_id": {
+          "$ref": "#/$defs/sis_id"
+        },
+        "login_id": {
+          "$ref": "#/$defs/sis_id"
+        },
+        "full_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "first_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "last_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "short_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sortable_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "const": "active"
+        }
+      }
+    },
+    "sis_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._@-]*$"
+    },
+    "quiz_settings": {
+      "description": "Classic Quiz settings (Canvas Quiz API names). course.yml defaults.quiz sets them for every quiz; a quiz file may override any of them.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "quiz_type": {
+          "enum": [
+            "practice_quiz",
+            "assignment",
+            "graded_survey",
+            "survey"
+          ]
+        },
+        "allowed_attempts": {
+          "type": "integer",
+          "minimum": -1
+        },
+        "time_limit": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "scoring_policy": {
+          "enum": [
+            "keep_highest",
+            "keep_latest",
+            "keep_average"
+          ]
+        },
+        "shuffle_answers": {
+          "type": "boolean"
+        },
+        "show_correct_answers": {
+          "type": "boolean"
+        },
+        "one_question_at_a_time": {
+          "type": "boolean"
+        },
+        "cant_go_back": {
+          "type": "boolean"
+        },
+        "hide_results": {
+          "enum": [
+            null,
+            "always",
+            "until_after_last_attempt"
+          ]
+        },
+        "published": {
+          "type": "boolean"
+        }
+      }
+    },
+    "quiz": {
+      "description": "NNN-slug.quiz.yml: the Classic Quiz for the note with the same id.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reviewed",
+        "title",
+        "questions"
+      ],
+      "properties": {
+        "reviewed": {
+          "type": "boolean",
+          "description": "false: generated and not yet reviewed by a person; courses apply skips it (SWM-221)."
+        },
+        "source_hash": {
+          "type": "string",
+          "pattern": "^(sha256:)?[0-9a-f]{64}$",
+          "description": "sha256 of the note the quiz was generated from (SWM-221)."
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string"
+        },
+        "quiz_type": {
+          "$ref": "#/$defs/quiz_settings/properties/quiz_type"
+        },
+        "allowed_attempts": {
+          "$ref": "#/$defs/quiz_settings/properties/allowed_attempts"
+        },
+        "time_limit": {
+          "$ref": "#/$defs/quiz_settings/properties/time_limit"
+        },
+        "scoring_policy": {
+          "$ref": "#/$defs/quiz_settings/properties/scoring_policy"
+        },
+        "shuffle_answers": {
+          "$ref": "#/$defs/quiz_settings/properties/shuffle_answers"
+        },
+        "show_correct_answers": {
+          "$ref": "#/$defs/quiz_settings/properties/show_correct_answers"
+        },
+        "one_question_at_a_time": {
+          "$ref": "#/$defs/quiz_settings/properties/one_question_at_a_time"
+        },
+        "cant_go_back": {
+          "$ref": "#/$defs/quiz_settings/properties/cant_go_back"
+        },
+        "hide_results": {
+          "$ref": "#/$defs/quiz_settings/properties/hide_results"
+        },
+        "published": {
+          "$ref": "#/$defs/quiz_settings/properties/published"
+        },
+        "questions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/question"
+          }
+        }
+      }
+    },
+    "question": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "question_type",
+        "question_text",
+        "points_possible",
+        "answers"
+      ],
+      "properties": {
+        "question_type": {
+          "enum": [
+            "multiple_choice_question",
+            "true_false_question",
+            "multiple_answers_question"
+          ]
+        },
+        "question_name": {
+          "type": "string"
+        },
+        "question_text": {
+          "type": "string",
+          "minLength": 1
+        },
+        "points_possible": {
+          "type": "number",
+          "minimum": 0
+        },
+        "correct_comments": {
+          "type": "string"
+        },
+        "incorrect_comments": {
+          "type": "string"
+        },
+        "neutral_comments": {
+          "type": "string"
+        },
+        "answers": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "$ref": "#/$defs/answer"
+          }
+        }
+      }
+    },
+    "answer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "answer_text",
+        "answer_weight"
+      ],
+      "properties": {
+        "answer_text": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Markdown; sent to Canvas as answer_html."
+        },
+        "answer_weight": {
+          "enum": [
+            0,
+            100
+          ],
+          "description": "100 = correct."
+        },
+        "answer_comments": {
+          "type": "string"
+        }
+      }
+    },
+    "note_front_matter": {
+      "description": "Optional YAML front matter at the top of a note, between --- lines.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "video": {
+          "description": "What the author wants (SWM-220). Generated fields live in media.lock.yml, never here.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "generate": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    }
+  }
+}
