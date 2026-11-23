@@ -92,6 +92,8 @@ To test from your own Mac or phone over Tailscale, see the [Private staging test
 
 ## If the VM goes down
 
+The full version, with expiry dates, is the [Staging VM lifecycle runbook](https://star-with-me.atlassian.net/wiki/spaces/STARWITHME/pages/5931025).
+
 How long it can stay up: indefinitely. The account is Pay As You Go, so Oracle doesn't reclaim it for being idle, and the A1 shape stays inside Always Free. Three things expire on their own:
 
 * the Tailscale key of `swm-staging`, after 180 days by default (choose **Disable key expiry** for it in the Tailscale admin console);
