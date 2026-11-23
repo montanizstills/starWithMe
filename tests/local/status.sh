@@ -3,7 +3,7 @@
 # Read-only: never changes containers, volumes or data. Feeds Cloud sizing.
 # Exits 1 if any service is not running/healthy or Canvas fails its health check.
 set -uo pipefail
-cd "$(dirname "$0")/../.."
+cd "$(dirname "$0")/../.." || exit 2
 
 PROJECT=$(docker compose config --format json 2>/dev/null | jq -r .name)
 DB=(docker compose exec -T db psql -U canvas -d canvas_development -tAc)
