@@ -26,7 +26,7 @@ The full allow-list is [`src/courses/schema/course-format.schema.json`](src/cour
 | Variable | |
 | --- | --- |
 | `CANVAS_URL` | Default `http://localhost:3000` for `local`; required for `staging`. |
-| `CANVAS_API_TOKEN` | Site admin token. Locally, `tools/canvas-api-token.sh` writes it to `.env` (SWM-206). |
+| `CANVAS_API_TOKEN` | Site admin token. Locally, `tools/apply-example-course.sh` (run by `./start.sh --local`) writes it to `.env` with `tools/canvas-token.rb` (SWM-206). |
 | `TEST_STUDENT_PASSWORD` | Required when `course.yml` lists `sis_users`. |
 | `CANVAS_ACCOUNT_ID` | Optional, default `1`: the root account that receives the SIS Import. |
 

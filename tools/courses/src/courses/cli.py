@@ -47,7 +47,7 @@ def settings(target: str, environ=None, dotenv_path: Path | None = None) -> dict
         raise ConfigError("CANVAS_URL is required for --target staging (the staging URL on the tailnet)")
     token = env.get("CANVAS_API_TOKEN", "")
     if not token:
-        raise ConfigError("CANVAS_API_TOKEN is not set (tools/canvas-api-token.sh writes it to .env for local)")
+        raise ConfigError("CANVAS_API_TOKEN is not set (tools/apply-example-course.sh writes it to .env for local)")
     register_secret(token)
     password = env.get("TEST_STUDENT_PASSWORD") or None
     register_secret(password)
