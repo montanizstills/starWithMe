@@ -18,16 +18,16 @@ else
   echo "Budget $NAME already exists"
 fi
 
-have=$(oci budgets alert-rule list --budget-id "$B" --all --query 'data[]."display-name"' 2>/dev/null)
+have=$(oci budgets budget alert-rule list --budget-id "$B" --all --query 'data[]."display-name"' 2>/dev/null)
 add_rule() { # name type threshold
   if printf '%s' "$have" | grep -q "\"$1\""; then echo "Alert $1 already exists"; return; fi
-  oci budgets alert-rule create --budget-id "$B" --type "$2" --threshold "$3" \
-    --threshold-type PERCENTAGE --recipients "$EMAIL" --display-name "$1" >/dev/null \
-    && echo "Created alert $1" || echo "Alert $1 failed"
+  oci budgets budget alert-rule create --budget-id "$B" --type "$2" --threshold "$3" \
+    --threshold-type PERCENTAGE --recipients "$EMAIL" --display-name "$1" >/tmp/swm-alert.err 2>&1 \
+    && echo "Created alert $1" || { echo "Alert $1 failed:"; tail -5 /tmp/swm-alert.err; }
 }
 add_rule actual_1pct ACTUAL 1
 add_rule forecast_100pct FORECAST 100
 
 echo
-oci budgets alert-rule list --budget-id "$B" --all \
+oci budgets budget alert-rule list --budget-id "$B" --all \
   --query 'data[].{name:"display-name",type:type,pct:threshold,email:recipients}' --output table
