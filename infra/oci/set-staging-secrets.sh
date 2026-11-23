@@ -19,7 +19,8 @@ ENV=staging
 TARGET=${1:-}
 [ -n "$TARGET" ] || { echo "Usage: ... ubuntu@<VM public IP>" >&2; exit 1; }
 
-SSH_KEY=${SSH_KEY:-$HOME/.ssh/swm-oracle}
+SSH_KEY=${SSH_KEY:-}
+if [ -z "$SSH_KEY" ]; then for k in "$HOME/.ssh/swm-oracle" "$HOME/.ssh/swm_oracle"; do [ -f "$k" ] && SSH_KEY=$k && break; done; fi
 SSH_OPTS=(-o ConnectTimeout=15)
 [ -f "$SSH_KEY" ] && SSH_OPTS+=(-i "$SSH_KEY")
 
