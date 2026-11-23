@@ -10,12 +10,14 @@ Options:
   --local       Run Canvas locally via Docker Compose (Postgres + Redis + web)
   --codespace   Install Canvas inside a GitHub Codespace and start the Rails server
   --test        Run the local smoke tests against the running stack
+  --status      Show each service's health and footprint (CPU, memory, disk, jobs)
   -h, --help    Show this help message
 
 Examples:
   ./start.sh --local
   ./start.sh --codespace
   ./start.sh --test
+  ./start.sh --status
 EOF
 }
 
@@ -35,6 +37,9 @@ case "$1" in
     ;;
   --test)
     exec tests/local/smoke.sh "${@:2}"
+    ;;
+  --status)
+    exec tests/local/status.sh
     ;;
   -h|--help)
     usage
