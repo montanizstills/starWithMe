@@ -98,7 +98,7 @@ How long it can stay up: indefinitely. The account is Pay As You Go, so Oracle d
 * the GHCR token, which `deploy` needs to pull (see the secrets runbook for the date);
 * nothing else. The budget alert emails you if it ever costs money.
 
-**Rebooted or stopped and started** (same VM, same boot volume). Data persists: the database, uploads, `.env`, the GHCR login and the Tailscale sign-in are all on disk. Docker and Tailscale start at boot, and every container has `restart: unless-stopped`, so Canvas comes back by itself within a few minutes. Check with `staging.sh status`. If Canvas isn't healthy, run `staging.sh deploy`. The public IP is ephemeral, so it can change after a stop and start (look it up in the console), but the Tailscale IP stays the same.
+**Rebooted or stopped and started** (same VM, same boot volume). Data persists: the database, uploads, `.env`, the GHCR login and the Tailscale sign-in are all on disk. Docker and Tailscale start at boot, and every container has `restart: unless-stopped`, so Canvas comes back by itself within a few minutes. Check with `staging.sh status`. If Canvas isn't healthy, run `staging.sh deploy`. The public IP and the Tailscale IP both stay the same.
 
 **Terminated** (the VM or its boot volume is gone). Do a full rebuild: steps 1 to 6 above. The Tailscale IP will be new, so delete `STAGING_HOST` and `STAGING_SSH_KEY` and run `set-staging-secrets.sh` again (step 5), and update the Tailscale testing runbook's address. The database is lost: the course and test student come back from `staging.sh inject`, but anything made by hand in Canvas doesn't. Backups are [SWM-224](https://star-with-me.atlassian.net/browse/SWM-224).
 
