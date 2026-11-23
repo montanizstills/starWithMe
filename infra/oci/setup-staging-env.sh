@@ -10,9 +10,17 @@ set -euo pipefail
 REPO_URL=https://github.com/montanizstills/starWithMe.git
 DIR="$HOME/starWithMe"
 
-if [ ! -d "$DIR/.git" ]; then
-  echo "== Cloning the repo to $DIR"
-  git clone -q "$REPO_URL" "$DIR"
+# A half-finished clone (for example after Ctrl-C) is removed and started again
+if [ -d "$DIR" ] && ! git -C "$DIR" rev-parse --verify -q HEAD >/dev/null; then
+  echo "== Removing an incomplete clone in $DIR"
+  rm -rf "$DIR"
+fi
+if [ ! -d "$DIR" ]; then
+  # The full history is about 2 GB. A blobless clone fetches only the files
+  # the checked-out branch needs (tens of MB) and still lets deploy-staging
+  # check out any branch, tag or commit later.
+  echo "== Cloning the repo to $DIR (blobless, with progress)"
+  git clone --filter=blob:none --progress "$REPO_URL" "$DIR"
 fi
 cd "$DIR"
 
