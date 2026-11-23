@@ -1,0 +1,52 @@
+# Quick tier (SWM-226): fast checks on every PR into dev, no Canvas server and
+# no secrets. Required on dev together with deploy-test (the slow tier).
+# No path filters: a required check that is skipped stays pending.
+#
+# Standing rule (human, 2026-11-23): every story adds at least one automated
+# check that fails without its change and runs in CI. Add quick ones here.
+name: quick
+
+on:
+  pull_request:
+    branches: [dev]
+  push:
+    branches: [dev]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  quick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # Compose needs these to parse; throwaway values, never used to start anything
+      - name: Static smoke (repo and compose)
+        run: |
+          printf 'POSTGRES_PASSWORD=x\nCANVAS_ADMIN_EMAIL=ci@example.test\nCANVAS_ADMIN_PASSWORD=x\n' > .env
+          tests/local/smoke.sh static
+
+      - name: shellcheck (warnings and errors)
+        run: |
+          shellcheck --version | head -2
+          git ls-files -z '*.sh' | xargs -0 shellcheck -S warning
+
+      - name: courses tool unit tests (SWM-204, SWM-205)
+        run: |
+          python -m venv tools/courses/.venv
+          tools/courses/.venv/bin/pip install -q -r tools/courses/requirements-dev.txt
+          tools/courses/.venv/bin/python -m pytest -q tools/courses/tests
+
+      - name: Validate every course folder
+        run: |
+          for d in courses/*/ tools/courses/tests/fixtures/*/; do
+            [ -d "$d" ] || continue
+            echo "validate $d"
+            tools/courses/courses validate "$d" > /dev/null
+          done
