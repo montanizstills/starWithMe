@@ -8,6 +8,7 @@
 #   bash <(curl -fsSL <raw URL>) inject  [ref] [course]      default: dev courses/example-playwright-browser-use
 #   bash <(curl -fsSL <raw URL>) student [ref]               default: dev
 #   bash <(curl -fsSL <raw URL>) status
+#   bash <(curl -fsSL <raw URL>) check                    proof for SWM-202 / SWM-36, no secrets
 #
 # Works in ~/starWithMe (setup-staging-env.sh creates it). Never prints a secret.
 # The test student's password lives in the VM's .env as TEST_STUDENT_PASSWORD;
@@ -123,7 +124,32 @@ case "$cmd" in
     free -h | grep -E 'Mem|Swap'
     ;;
 
+  check)
+    # Proof for SWM-202 / SWM-36. Prints no secrets and no public IP.
+    echo "== Oracle metadata (region, shape)"
+    curl -s -m 5 -H "Authorization: Bearer Oracle" http://169.254.169.254/opc/v2/instance/ | grep -E '"(canonicalRegionName|shape)"' || echo "  (metadata service not reachable)"
+    echo "== CPU, memory, swap, disk"
+    nproc; free -h | grep -E 'Mem|Swap'; df -h / | tail -1
+    echo "== OS, Docker, Tailscale"
+    lsb_release -ds; uname -m; docker --version
+    tailscale status --self --peers=false | awk '{print $2, $4, $5}'
+    echo "== GHCR login present (1 = yes)"
+    grep -c ghcr.io ~/.docker/config.json || true
+    echo "== .env (names only)"
+    stat -c '%a %n' "$DIR/.env"; grep -v '^#' "$DIR/.env" | cut -d= -f1
+    echo "== .env tracked by git? (expect nothing)"
+    git ls-files --error-unmatch .env 2>/dev/null || echo "  not tracked"
+    echo "== Containers"
+    "${COMPOSE[@]}" ps --format 'table {{.Service}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}'
+    echo "== /health_check over Tailscale"
+    curl -s -o /dev/null -m 10 -w '  HTTP %{http_code}\n' "$CANVAS_URL/health_check" || true
+    echo "== Error page leaks a stack trace? (expect 0)"
+    curl -s -m 15 "$CANVAS_URL/no-such-page-swm" | grep -ciE 'backtrace|stack trace|\.rb:[0-9]' || true
+    echo "== Ports listening on all interfaces (expect only 22, and Tailscale's own)"
+    sudo ss -ltnH | awk '{print $4}' | grep -E '^(0\.0\.0\.0|\*|\[::\]):' | sort -u
+    ;;
+
   *)
-    echo "Usage: staging.sh deploy [ref] [image_tag] | inject [ref] [course] | student [ref] | status"
+    echo "Usage: staging.sh deploy [ref] [image_tag] | inject [ref] [course] | student [ref] | status | check"
     ;;
 esac
