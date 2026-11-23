@@ -101,7 +101,7 @@ jobs:
             user = Pseudonym.active.find_by!(unique_id: ENV.fetch("CANVAS_LMS_ADMIN_EMAIL")).user
             puts "TOKEN=#{user.access_tokens.create!(purpose: "deploy-test courses apply").full_token}"
           ' 2>runner.err | sed -n 's/^TOKEN=//p' | tail -1)"
-          [ -n "$token" ] || { echo "Could not create an API token:"; tail -40 runner.err; exit 1; }
+          [ -n "$token" ] || { echo "Could not create an API token:"; grep -v "^[[:space:]]*from " runner.err | head -20; exit 1; }
           echo "::add-mask::$token"
           grep -i "sis imports" runner.err || true
           export CANVAS_API_TOKEN="$token" TEST_STUDENT_PASSWORD="$student_pw"
