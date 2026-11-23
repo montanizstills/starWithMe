@@ -108,8 +108,21 @@ jobs:
               Setting.set("User-Generated_developer_key_id", key.id.to_s)
               warn "created the default developer key"
             end
+            key = DeveloperKey.default(create_if_missing: false) || DeveloperKey.find_by(name: "User-Generated")
+            # Turn the key on for the accounts the API is called on; a key that is
+            # off for the account makes Canvas answer 401 for its tokens.
+            [Account.site_admin, Account.default].each do |acct|
+              b = DeveloperKeyAccountBinding.find_or_initialize_by(account_id: acct.id, developer_key_id: key.id)
+              b.workflow_state = "on"
+              b.save!(validate: false)
+            rescue => e
+              warn "developer key binding for #{acct.name}: #{e.class}: #{e.message}"
+            end
             user = Pseudonym.active.find_by!(unique_id: ENV.fetch("CANVAS_LMS_ADMIN_EMAIL")).user
-            puts "TOKEN=#{user.access_tokens.create!(purpose: "deploy-test courses apply").full_token}"
+            token = user.access_tokens.create!(purpose: "deploy-test courses apply", developer_key: key)
+            found = AccessToken.authenticate(token.full_token)
+            warn "developer key check: key=#{key.id} state=#{key.workflow_state} token_found=#{!found.nil?} usable=#{found&.usable?.inspect} default=#{DeveloperKey.default(create_if_missing: false)&.id.inspect}"
+            puts "TOKEN=#{token.full_token}"
           ' 2>runner.err | sed -n 's/^TOKEN=//p' | tail -1)"
           [ -n "$token" ] || { echo "Could not create an API token:"; grep -v "^[[:space:]]*from " runner.err | head -20; exit 1; }
           echo "::add-mask::$token"
