@@ -28,6 +28,17 @@ if [ ! -f /swapfile ]; then
   grep -q '^/swapfile' /etc/fstab || echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab >/dev/null
 fi
 
+# Canvas binds only to the Tailscale IP (WEB_BIND). After a reboot Docker can start
+# before tailscale0 has that address, and the web container then fails to bind and
+# stays down. Allowing non-local binds lets it start and receive traffic once
+# Tailscale is up.
+if [ "$(sysctl -n net.ipv4.ip_nonlocal_bind)" != 1 ]; then
+  echo "== Allowing binds to the Tailscale IP before it exists (survives reboots)"
+  echo 'net.ipv4.ip_nonlocal_bind = 1' | sudo tee /etc/sysctl.d/60-swm-nonlocal-bind.conf >/dev/null
+  sudo sysctl -q --system
+fi
+sudo systemctl enable -q docker tailscaled
+
 echo "== Starting Tailscale (open the link it prints and sign in with the same account as your Mac and phone)"
 sudo tailscale up --ssh=false || true
 

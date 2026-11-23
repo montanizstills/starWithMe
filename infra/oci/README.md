@@ -90,6 +90,18 @@ The first `deploy` sets up the database and can take up to 30 minutes. `check` p
 
 To test from your own Mac or phone over Tailscale, see the [Private staging testing over Tailscale runbook](https://star-with-me.atlassian.net/wiki/spaces/STARWITHME/pages/6193153).
 
+## If the VM goes down
+
+How long it can stay up: indefinitely. The account is Pay As You Go, so Oracle doesn't reclaim it for being idle, and the A1 shape stays inside Always Free. Three things expire on their own:
+
+* the Tailscale key of `swm-staging`, after 180 days by default (choose **Disable key expiry** for it in the Tailscale admin console);
+* the GHCR token, which `deploy` needs to pull (see the secrets runbook for the date);
+* nothing else. The budget alert emails you if it ever costs money.
+
+**Rebooted or stopped and started** (same VM, same boot volume). Data persists: the database, uploads, `.env`, the GHCR login and the Tailscale sign-in are all on disk. Docker and Tailscale start at boot, and every container has `restart: unless-stopped`, so Canvas comes back by itself within a few minutes. Check with `staging.sh status`. If Canvas isn't healthy, run `staging.sh deploy`. The public IP is ephemeral, so it can change after a stop and start (look it up in the console), but the Tailscale IP stays the same.
+
+**Terminated** (the VM or its boot volume is gone). Do a full rebuild: steps 1 to 6 above. The Tailscale IP will be new, so delete `STAGING_HOST` and `STAGING_SSH_KEY` and run `set-staging-secrets.sh` again (step 5), and update the Tailscale testing runbook's address. The database is lost: the course and test student come back from `staging.sh inject`, but anything made by hand in Canvas doesn't. Backups are [SWM-224](https://star-with-me.atlassian.net/browse/SWM-224).
+
 ## Overlap with SWM-239 and SWM-240
 
 Two open stories will make parts of this redundant. Update this README when either lands.
