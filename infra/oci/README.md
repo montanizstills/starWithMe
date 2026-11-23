@@ -20,6 +20,7 @@ Jira: [SWM-36](https://star-with-me.atlassian.net/browse/SWM-36) (the VM), [SWM-
 | `setup-staging-env.sh` | the VM, as `ubuntu` | VM |
 | `set-staging-secrets.sh` | your Mac, with `gh` signed in | account (partly per VM, see step 5) |
 | `staging.sh` | the VM, as `ubuntu` | every deploy or test |
+| `staging-proof.sh` | your Mac (outside the tailnet's addresses) | proof run: smoke tests plus the outside port check (SWM-38) |
 
 ## One time per account
 
@@ -84,9 +85,12 @@ bash <(curl -fsSL $R/staging.sh) inject  [ref] [course]      # default: dev cour
 bash <(curl -fsSL $R/staging.sh) student [ref]               # default: dev
 bash <(curl -fsSL $R/staging.sh) status
 bash <(curl -fsSL $R/staging.sh) check                       # proof for SWM-202 / SWM-36, no secrets
+bash <(curl -fsSL $R/staging.sh) smoke   [ref]               # smoke tests on the VM's stack (SWM-38, SWM-201)
 ```
 
 The first `deploy` sets up the database and can take up to 30 minutes. `check` prints the setup proof to paste into Jira: Oracle metadata, memory, Docker and Tailscale versions, `.env` names only, containers, the health check and listening ports.
+
+From your Mac, `bash <(curl -fsSL $R/staging-proof.sh) <VM public IP>` runs `smoke` on the VM over SSH, then probes the public IP from outside: only 22 may answer. The IP is masked in the output.
 
 To test from your own Mac or phone over Tailscale, see the [Private staging testing over Tailscale runbook](https://star-with-me.atlassian.net/wiki/spaces/STARWITHME/pages/6193153).
 
