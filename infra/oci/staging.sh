@@ -78,14 +78,11 @@ case "$cmd" in
       echo "== Adding TEST_STUDENT_PASSWORD to .env (new random value)"
       printf 'TEST_STUDENT_PASSWORD=%s\n' "$(openssl rand -hex 16)" >> .env
     fi
-    echo "== Enabling SIS imports and minting a 2-hour token (not shown)"
-    token=$("${COMPOSE[@]}" exec -T -e PURPOSE="$TOKEN_PURPOSE" web bundle exec rails runner '
-      Account.default.update!(allow_sis_import: true)
-      user = Pseudonym.active.find_by!(unique_id: ENV.fetch("CANVAS_LMS_ADMIN_EMAIL")).user
-      user.access_tokens.active.where(purpose: ENV.fetch("PURPOSE")).each(&:destroy)
-      puts user.access_tokens.create!(purpose: ENV.fetch("PURPOSE"), expires_at: 2.hours.from_now).full_token
-    ' 2>/dev/null | tail -1)
-    [ -n "$token" ] || { echo "Could not create a token in the web container." >&2; exit 1; }
+    [ -f tools/canvas-token.rb ] || { echo "tools/canvas-token.rb isn't on $ref yet (PR #11)." >&2; exit 1; }
+    echo "== Enabling SIS imports and making an API token (not shown)"
+    token=$("${COMPOSE[@]}" exec -T -e TOKEN_PURPOSE="$TOKEN_PURPOSE" web \
+      bundle exec rails runner "$(cat tools/canvas-token.rb)" 2>"$HOME/.canvas-token.err" | sed -n 's/^TOKEN=//p' | tail -1 || true)
+    [ -n "$token" ] || { echo "Could not create a token in the web container:" >&2; grep -v '^[[:space:]]*from ' "$HOME/.canvas-token.err" | head -20 >&2; exit 1; }
     cleanup() {
       "${COMPOSE[@]}" exec -T -e PURPOSE="$TOKEN_PURPOSE" web bundle exec rails runner \
         'AccessToken.active.where(purpose: ENV.fetch("PURPOSE")).each(&:destroy)' >/dev/null 2>&1 || true

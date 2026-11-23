@@ -2,7 +2,7 @@
 # Runs the courses tool (SWM-205) on the GitHub runner against Canvas on the VM,
 # reached over Tailscale. Safe to re-run: a second apply reports 0 changes.
 #
-# No long-lived Canvas token is stored anywhere: each run mints a short-lived
+# No long-lived Canvas token is stored anywhere: each run mints a one-run
 # admin API token inside the VM's web container (replacing the previous one),
 # masks it, and deletes it at the end. The test student's password comes from
 # the `staging` environment secret TEST_STUDENT_PASSWORD.
@@ -84,14 +84,11 @@ jobs:
       # fresh token for this run. The token is masked before anything else runs.
       - name: Prepare Canvas and mint a run token
         run: |
-          out=$(ssh staging "cd '$STAGING_DIR' && docker compose -f docker-compose.yml -f docker-compose.cloud.yml exec -T -e PURPOSE='$TOKEN_PURPOSE' web bundle exec rails runner '
-            Account.default.update!(allow_sis_import: true)
-            user = Pseudonym.active.find_by!(unique_id: ENV.fetch(\"CANVAS_LMS_ADMIN_EMAIL\")).user
-            user.access_tokens.active.where(purpose: ENV.fetch(\"PURPOSE\")).each(&:destroy)
-            token = user.access_tokens.create!(purpose: ENV.fetch(\"PURPOSE\"), expires_at: 2.hours.from_now)
-            puts \"CANVAS_API_TOKEN=#{token.full_token}\"
-          ' 2>/dev/null") || { echo "Could not reach the web container on staging"; exit 1; }
-          token=$(sed -n 's/^CANVAS_API_TOKEN=//p' <<<"$out" | tail -1)
+          # tools/canvas-token.rb (from the checked-out ref) also sets up Canvas's
+          # default developer key, without which tokens are refused with 401 on this image.
+          out=$(ssh staging "cd '$STAGING_DIR' && docker compose -f docker-compose.yml -f docker-compose.cloud.yml exec -T -e TOKEN_PURPOSE='$TOKEN_PURPOSE' web bundle exec rails runner \"\$(cat)\" 2>/dev/null" < tools/canvas-token.rb) \
+            || { echo "Could not reach the web container on staging"; exit 1; }
+          token=$(sed -n 's/^TOKEN=//p' <<<"$out" | tail -1)
           unset out
           [ -n "$token" ] || { echo "No token returned"; exit 1; }
           echo "::add-mask::$token"
@@ -133,4 +130,4 @@ jobs:
         run: |
           ssh staging "cd '$STAGING_DIR' && docker compose -f docker-compose.yml -f docker-compose.cloud.yml exec -T -e PURPOSE='$TOKEN_PURPOSE' web bundle exec rails runner '
             AccessToken.active.where(purpose: ENV.fetch(\"PURPOSE\")).each(&:destroy)
-          '" >/dev/null 2>&1 || echo "Could not delete the run token; it expires on its own within 2 hours"
+          '" >/dev/null 2>&1 || echo "Could not delete the run token; delete it in Canvas (purpose: $TOKEN_PURPOSE)"
