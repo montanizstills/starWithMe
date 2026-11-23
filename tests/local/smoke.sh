@@ -171,10 +171,13 @@ runtime_tests() {
   db_port="$(dc port db 5432 2>/dev/null)"
   if [ "$SMOKE_TARGET" = staging ]; then
     # Staging publishes no db or redis port at all (docker-compose.cloud.yml)
-    if [ -z "$db_port" ] && [ -z "$(dc port redis 6379 2>/dev/null)" ]; then
+    # `docker compose port` prints ":0" (or nothing) for a port with no host binding
+    local redis_port
+    redis_port="$(dc port redis 6379 2>/dev/null)"
+    if [[ ! "$db_port" =~ :[1-9][0-9]*$ ]] && [[ ! "$redis_port" =~ :[1-9][0-9]*$ ]]; then
       pass "db and redis publish no host port (staging)"
     else
-      fail "db and redis publish no host port (staging)" "db: ${db_port:-none}"
+      fail "db and redis publish no host port (staging)" "db: ${db_port:-none}, redis: ${redis_port:-none}"
     fi
   elif [[ "$db_port" == 127.0.0.1:* ]] && nc -z 127.0.0.1 "${db_port##*:}" 2>/dev/null; then
     pass "db reachable from host on localhost only ($db_port)"
