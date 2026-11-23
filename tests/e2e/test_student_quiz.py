@@ -17,7 +17,9 @@ def open_course(page: Page, title: str) -> None:
 
 def start_attempt(page: Page, quiz_title: str) -> None:
     page.get_by_role("link", name=quiz_title, exact=True).first.click()
-    take = page.get_by_role("link", name=re.compile(r"^(Take the Quiz( Again)?|Resume Quiz)$"))
+    # Canvas shows "Take the Quiz" as a button (a form post) and "Resume Quiz" as a link.
+    name = re.compile(r"^(Take the Quiz( Again)?|Resume Quiz)$")
+    take = page.get_by_role("button", name=name).or_(page.get_by_role("link", name=name)).first
     expect(take, f'no attempt left on "{quiz_title}": the quiz needs allowed_attempts: -1').to_be_visible()
     take.click()
 
