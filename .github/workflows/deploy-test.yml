@@ -81,6 +81,30 @@ jobs:
       - name: Smoke tests
         run: tests/local/smoke.sh runtime 2>&1 | tee smoke-runtime.log; exit "${PIPESTATUS[0]}"
 
+      # SWM-205: courses apply against the real Canvas. The first run creates
+      # the course, test student, modules, pages and quiz; the second must
+      # report 0 changes. live_check.py then checks publishing, <pre> code and
+      # the student's login. Uses the example course when it is on the branch.
+      - name: Apply a course twice and check it (SWM-205)
+        run: |
+          student_pw="$(openssl rand -hex 24)"
+          echo "::add-mask::$student_pw"
+          # tools/canvas-token.rb: the site admin token (and SIS imports on).
+          # Ruby errors go to runner.err (no secrets there) and are shown on failure.
+          token="$(docker compose exec -T -e TOKEN_PURPOSE="deploy-test courses apply" web \
+            bundle exec rails runner "$(cat tools/canvas-token.rb)" 2>runner.err | sed -n 's/^TOKEN=//p' | tail -1)"
+          [ -n "$token" ] || { echo "Could not create an API token:"; grep -v "^[[:space:]]*from " runner.err | head -20; exit 1; }
+          echo "::add-mask::$token"
+          grep -v "^[[:space:]]*from \|Spring preloader" runner.err || true
+          export CANVAS_API_TOKEN="$token" TEST_STUDENT_PASSWORD="$student_pw"
+          course=tools/courses/tests/fixtures/mini-course
+          [ -d courses/example-playwright-browser-use ] && course=courses/example-playwright-browser-use
+          tools/courses/courses apply "$course" --target local > apply-first.json
+          tools/courses/courses apply "$course" --target local > apply-second.json
+          jq '{summary, skipped}' apply-first.json apply-second.json
+          jq -e '.changes == []' apply-second.json > /dev/null || { echo "second apply was not 0 changes"; exit 1; }
+          tools/courses/.venv/bin/python tools/courses/tests/live_check.py "$course" apply-first.json
+
       - name: Stack logs on failure
         if: failure()
         run: docker compose logs --no-color --tail 300 > stack.log 2>&1 || true
@@ -93,6 +117,8 @@ jobs:
           path: |
             smoke-runtime.log
             stack.log
+            apply-first.json
+            apply-second.json
           if-no-files-found: ignore
 
       - name: Tear down

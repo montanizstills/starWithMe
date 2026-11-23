@@ -51,3 +51,8 @@ log.txt
 
 ## Local secrets (never commit)
 .env
+
+## courses tool (tools/courses): its virtualenv and Python caches
+tools/courses/.venv/
+__pycache__/
+.pytest_cache/
