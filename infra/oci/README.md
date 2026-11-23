@@ -83,9 +83,12 @@ bash <(curl -fsSL $R/staging.sh) deploy  [ref] [image_tag]   # default: dev late
 bash <(curl -fsSL $R/staging.sh) inject  [ref] [course]      # default: dev courses/example-playwright-browser-use
 bash <(curl -fsSL $R/staging.sh) student [ref]               # default: dev
 bash <(curl -fsSL $R/staging.sh) status
+bash <(curl -fsSL $R/staging.sh) check                       # proof for SWM-202 / SWM-36, no secrets
 ```
 
-The first `deploy` sets up the database and can take up to 30 minutes.
+The first `deploy` sets up the database and can take up to 30 minutes. `check` prints the setup proof to paste into Jira: Oracle metadata, memory, Docker and Tailscale versions, `.env` names only, containers, the health check and listening ports.
+
+To test from your own Mac or phone over Tailscale, see the [Private staging testing over Tailscale runbook](https://star-with-me.atlassian.net/wiki/spaces/STARWITHME/pages/6193153).
 
 ## Overlap with SWM-239 and SWM-240
 
