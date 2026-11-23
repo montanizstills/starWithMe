@@ -89,49 +89,13 @@ jobs:
         run: |
           student_pw="$(openssl rand -hex 24)"
           echo "::add-mask::$student_pw"
-          # Same as tools/canvas-api-token.sh (SWM-206), without writing .env.
+          # tools/canvas-token.rb: the site admin token (and SIS imports on).
           # Ruby errors go to runner.err (no secrets there) and are shown on failure.
-          token="$(docker compose exec -T web bundle exec rails runner '
-            # SIS Import (how apply creates the course and student) may be off on a new Canvas
-            begin
-              Account.default.update!(allow_sis_import: true) if Account.default.respond_to?(:allow_sis_import=)
-            rescue => e
-              warn "could not turn on SIS imports: #{e.class}: #{e.message}"
-            end
-            # Tokens belong to the default developer key. Canvas creates it on first
-            # use inside Shard.birth, which here writes the site admin account as a
-            # global id and fails its foreign key. Create it with the local id first.
-            if DeveloperKey.default(create_if_missing: false).nil?
-              key = DeveloperKey.new(name: "User-Generated")
-              key.root_account_id = Account.site_admin.local_id
-              key.save!(validate: false)
-              Setting.set("User-Generated_developer_key_id", key.id.to_s)
-              warn "created the default developer key"
-            end
-            key = DeveloperKey.default(create_if_missing: false) || DeveloperKey.find_by(name: "User-Generated")
-            # Turn the key on for the accounts the API is called on; a key that is
-            # off for the account makes Canvas answer 401 for its tokens.
-            # Saving a binding through the model hits the same global-id foreign key
-            # error, so write the rows directly with local ids.
-            [Account.site_admin, Account.default].each do |acct|
-              now = Time.now.utc
-              DeveloperKeyAccountBinding.where(account_id: acct.local_id, developer_key_id: key.local_id).delete_all
-              DeveloperKeyAccountBinding.insert_all!([{account_id: acct.local_id, developer_key_id: key.local_id,
-                workflow_state: "on", root_account_id: acct.local_id, created_at: now, updated_at: now}])
-            rescue => e
-              warn "developer key binding for #{acct.name}: #{e.class}: #{e.message.lines.first}"
-            end
-            user = Pseudonym.active.find_by!(unique_id: ENV.fetch("CANVAS_LMS_ADMIN_EMAIL")).user
-            token = user.access_tokens.create!(purpose: "deploy-test courses apply", developer_key: key)
-            found = AccessToken.authenticate(token.full_token)
-            warn "developer key check: key=#{key.id} state=#{key.workflow_state} token_found=#{!found.nil?} usable=#{found&.usable?.inspect} default=#{DeveloperKey.default(create_if_missing: false)&.id.inspect}"
-            warn "developer key shards: current=#{Shard.current.id.inspect} default=#{Shard.default.id.inspect} birth=#{Shard.birth.id.inspect} shards=#{Shard.count} site_admin=#{Account.site_admin.id}/#{Account.site_admin.global_id} key_root=#{key.root_account_id}"
-            puts "TOKEN=#{token.full_token}"
-          ' 2>runner.err | sed -n 's/^TOKEN=//p' | tail -1)"
+          token="$(docker compose exec -T -e TOKEN_PURPOSE="deploy-test courses apply" web \
+            bundle exec rails runner "$(cat tools/canvas-token.rb)" 2>runner.err | sed -n 's/^TOKEN=//p' | tail -1)"
           [ -n "$token" ] || { echo "Could not create an API token:"; grep -v "^[[:space:]]*from " runner.err | head -20; exit 1; }
           echo "::add-mask::$token"
-          grep -iE "sis imports|developer key" runner.err || true
-          echo "API check: $(curl -s -H "Authorization: Bearer $token" http://localhost:3000/api/v1/users/self | head -c 300)"
+          grep -v "^[[:space:]]*from \|Spring preloader" runner.err || true
           export CANVAS_API_TOKEN="$token" TEST_STUDENT_PASSWORD="$student_pw"
           course=tools/courses/tests/fixtures/mini-course
           [ -d courses/example-playwright-browser-use ] && course=courses/example-playwright-browser-use

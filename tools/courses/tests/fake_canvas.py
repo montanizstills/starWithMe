@@ -175,7 +175,9 @@ class Handler(BaseHTTPRequestHandler):
                     it["content_id"] = st.pages[cid][it.pop("page_url")]["page_id"]
                 items.append(it)
                 return self._send(200, it)
-            shown = [dict(i, page_url=pages[i["content_id"]]["url"]) if i["type"] == "Page" else i for i in items]
+            # Like Canvas: a Page item shows the page's current URL, not its id
+            shown = [{**{k: v for k, v in i.items() if k != "content_id"}, "page_url": pages[i["content_id"]]["url"]}
+                     if i["type"] == "Page" else i for i in items]
             return self._list(shown, q)
         if rest == "/pages" and method == "POST":
             wp = body["wiki_page"]

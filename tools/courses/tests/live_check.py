@@ -53,7 +53,8 @@ def main(folder: str, report_path: str) -> int:
         check(m.get("published") is True, f"module {m['name']!r} is published")
         for item in m.get("items") or []:
             if item["type"] == "Page":
-                page = api(f"/api/v1/courses/{cid}/pages/page_id:{item['content_id']}")
+                ref = f"page_id:{item['content_id']}" if item.get("content_id") else item["page_url"]
+                page = api(f"/api/v1/courses/{cid}/pages/{ref}")
                 check(page.get("published") is True, f"page {page['title']!r} is published")
                 with_pre += "<pre" in (page.get("body") or "")
     check(with_pre >= fenced, f"fenced code is preformatted: {with_pre} page(s) with <pre>, {fenced} note(s) with fences")
