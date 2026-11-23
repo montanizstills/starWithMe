@@ -1,0 +1,95 @@
+# Staging VM scripts (OCI)
+
+Everything needed to build the StarWithMe staging VM (`swm-staging`, OCI us-chicago-1) from nothing, in order. Each step is one line. The scripts never print a secret and are safe to re-run.
+
+Base URL for every script below (the repo is public, so no token is needed):
+
+```
+R=https://raw.githubusercontent.com/montanizstills/starWithMe/dev/infra/oci
+```
+
+Jira: [SWM-36](https://star-with-me.atlassian.net/browse/SWM-36) (the VM), [SWM-202](https://star-with-me.atlassian.net/browse/SWM-202) (staging setup). The full runbooks, with the secret inventory and rotation dates, live on Confluence: [Staging runbook (manual)](https://star-with-me.atlassian.net/wiki/spaces/STARWITHME/pages/6094850) and [Secrets and token rotation runbook](https://star-with-me.atlassian.net/wiki/spaces/STARWITHME/pages/4489217/Secrets+and+token+rotation+runbook). Secret values never go in this repo.
+
+## Where each script runs
+
+| Script | Runs in | Once per |
+| --- | --- | --- |
+| `create-budget-alert.sh` | OCI Cloud Shell | **account** |
+| `launch-staging-vm.sh` | OCI Cloud Shell | VM |
+| `bootstrap-vm.sh` | the VM, as `ubuntu` | VM |
+| `setup-staging-env.sh` | the VM, as `ubuntu` | VM |
+| `set-staging-secrets.sh` | your Mac, with `gh` signed in | account (partly per VM, see step 5) |
+| `staging.sh` | the VM, as `ubuntu` | every deploy or test |
+
+## One time per account
+
+Skip these when you are only replacing the VM.
+
+**A. Budget alert.** A $1/month budget on the whole tenancy, with email alerts at 1% actual and 100% forecast. In Cloud Shell:
+
+```
+bash <(curl -fsSL $R/create-budget-alert.sh) you@example.com
+```
+
+It reuses the budget `swm_1_dollar` if it exists and skips alert rules that exist.
+
+**B. Accounts and tokens outside OCI.** These are made by hand, not by a script. See the secrets runbook for where each one lives and when it expires.
+
+* A Tailscale account, and a Tailscale OAuth client for CI (`TS_OAUTH_CLIENT_ID`, `TS_OAUTH_SECRET`).
+* A GitHub token with `read:packages`, used for the GHCR login in step 3.
+
+## A new VM, in order
+
+**1. Launch the VM** (Cloud Shell). Put your SSH public key in `~/swm-oracle.pub` first (`cat > ~/swm-oracle.pub`, paste, Ctrl-D). Then:
+
+```
+bash <(curl -fsSL $R/launch-staging-vm.sh)
+```
+
+It retries every availability domain until A1 capacity frees up, and stops if `swm-staging` already exists. It prints the public IP. Don't use Oracle's AI assistant for this: it fails on `areLegacyImdsEndpointsDisabled`.
+
+**2. Bootstrap** (on the VM, after `ssh -i ~/.ssh/swm_oracle ubuntu@<public IP>`):
+
+```
+bash <(curl -fsSL $R/bootstrap-vm.sh)
+```
+
+Installs Docker with compose, Tailscale and an 8 GB swap file, then starts Tailscale. Open the link it prints and sign in. Log out and back in so the `docker` group applies.
+
+**3. Log in to GHCR** (on the VM, by hand). `docker login ghcr.io -u montanizstills --password-stdin`, then paste the token from step B and press Ctrl-D. The token is read from stdin, so it isn't saved in shell history.
+
+**4. Clone the repo and write `.env`** (on the VM):
+
+```
+bash <(curl -fsSL $R/setup-staging-env.sh) admin@example.com
+```
+
+The argument is the Canvas admin email for staging. It makes a blobless clone in `~/starWithMe` with progress (the full history is about 2 GB), and restarts a clone that was cut off. It writes `.env` with new random passwords, mode 600, and never overwrites an existing one.
+
+**5. Fill the GitHub `staging` environment** (on your Mac):
+
+```
+bash <(curl -fsSL $R/set-staging-secrets.sh) ubuntu@<public IP>
+```
+
+It finds your key at `~/.ssh/swm-oracle` or `~/.ssh/swm_oracle` (or set `SSH_KEY=`). It sets `STAGING_HOST`, `STAGING_SSH_KEY`, `TEST_STUDENT_PASSWORD`, `TS_OAUTH_CLIENT_ID` and `TS_OAUTH_SECRET`, and skips any that already exist.
+
+> **Rebuilding the VM:** `STAGING_HOST` and `STAGING_SSH_KEY` already exist from the old VM, so the script skips them, but the new VM has a new Tailscale IP and doesn't have the CI key. Delete those two first (`gh secret delete STAGING_HOST --env staging -R montanizstills/starWithMe`, the same for `STAGING_SSH_KEY`), then run step 5 again. Changing secrets needs the human's OK (C5).
+
+**6. Deploy and test** (on the VM):
+
+```
+bash <(curl -fsSL $R/staging.sh) deploy  [ref] [image_tag]   # default: dev latest
+bash <(curl -fsSL $R/staging.sh) inject  [ref] [course]      # default: dev courses/example-playwright-browser-use
+bash <(curl -fsSL $R/staging.sh) student [ref]               # default: dev
+bash <(curl -fsSL $R/staging.sh) status
+```
+
+The first `deploy` sets up the database and can take up to 30 minutes.
+
+## Overlap with SWM-239 and SWM-240
+
+Two open stories will make parts of this redundant. Update this README when either lands.
+
+* **[SWM-239](https://star-with-me.atlassian.net/browse/SWM-239)** moves every staging secret into the GitHub `staging` environment and has `deploy-staging` write the VM's `.env`. Once it ships, step 4 shrinks to the clone only (the `.env` part of `setup-staging-env.sh` goes away), and step 5's `set-staging-secrets.sh` also sets `POSTGRES_PASSWORD`, `CANVAS_ADMIN_EMAIL`, `CANVAS_ADMIN_PASSWORD` and `WEB_BIND`, with `--rotate`. The VM's `.env` and the environment hold the same values twice until then.
+* **[SWM-240](https://star-with-me.atlassian.net/browse/SWM-240)** decides whether `dev` becomes the default branch. `staging.sh` repeats the `deploy-staging`, `inject-course` and `student-test-staging` workflows ([PR #12](https://github.com/montanizstills/starWithMe/pull/12)) only because GitHub can't start them while the default branch is `prod`. If option 1 or 2 is picked, step 6 becomes "run the workflows from GitHub", and `staging.sh` stays as a fallback or is removed.

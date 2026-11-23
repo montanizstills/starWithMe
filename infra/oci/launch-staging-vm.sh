@@ -87,7 +87,7 @@ while true; do
       echo "VM created and RUNNING in $AD."
       [ -n "$id" ] && [ "$id" != "null" ] && \
         echo "Public IP: $(oci compute instance list-vnics --instance-id "$id" --query 'data[0]."public-ip"' --raw-output)"
-      echo "SSH: ssh -i ~/.ssh/swm-oracle ubuntu@<public IP>"
+      echo "SSH: ssh -i ~/.ssh/swm_oracle ubuntu@<public IP>   (or ~/.ssh/swm-oracle, whichever your Mac has)"
       exit 0
     fi
     if printf '%s' "$out" | grep -qiE 'out of (host )?capacity|InternalError|TooManyRequests'; then
