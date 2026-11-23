@@ -11,7 +11,7 @@
 set -uo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
-cd "$ROOT"
+cd "$ROOT" || exit 2
 
 JOB_TIMEOUT="${JOB_TIMEOUT:-60}"
 CANVAS_URL="${CANVAS_URL:-http://localhost:3000}"

@@ -1,0 +1,61 @@
+# The 0.2.0 release check (SWM-225): the test student logs in to private
+# staging over Tailscale, opens the example course, takes its Classic Quiz with
+# the answer key from the course files and must score full marks. Same test as
+# the CI student test (SWM-226), pointed at the VM. Run after deploy-staging and
+# inject-course. Uploads the JUnit report and failure screenshots (no traces,
+# so no typed passwords are recorded).
+name: student-test-staging
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Branch, tag or commit to take the test and course files from
+        required: true
+        default: dev
+
+permissions:
+  contents: read
+
+jobs:
+  student-test:
+    runs-on: ubuntu-latest
+    environment: staging
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Join the tailnet
+        uses: tailscale/github-action@v3
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+
+      - name: Check Canvas is up
+        env:
+          STAGING_HOST: ${{ secrets.STAGING_HOST }}
+        run: |
+          code=$(curl -s -o /dev/null -m 15 -w '%{http_code}' "http://$STAGING_HOST:3000/health_check" || true)
+          [ "$code" = 200 ] || { echo "Canvas on staging is not healthy (HTTP $code). Run deploy-staging first."; exit 1; }
+
+      - name: Run the student test
+        env:
+          CANVAS_URL: http://${{ secrets.STAGING_HOST }}:3000
+          TEST_STUDENT_PASSWORD: ${{ secrets.TEST_STUDENT_PASSWORD }}
+          PLAYWRIGHT_DEPS: '1'
+        run: tests/e2e/run.sh
+
+      - name: Upload the report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: student-test-staging
+          path: tests/e2e/test-results
+          if-no-files-found: ignore

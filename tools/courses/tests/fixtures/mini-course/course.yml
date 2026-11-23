@@ -1,0 +1,18 @@
+# Test fixture for the courses tool: the SWM-204 format in miniature.
+name: Mini course
+course_code: MINI-101
+default_view: modules
+public_description: A tiny course for the courses tool tests.
+defaults:
+  quiz:
+    quiz_type: assignment
+    allowed_attempts: -1
+    time_limit: null
+    scoring_policy: keep_highest
+    shuffle_answers: true
+    published: true
+sis_users:
+  - user_id: mini-101-student
+    login_id: mini-101-student
+    full_name: Mini Student
+    status: active

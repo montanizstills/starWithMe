@@ -1,0 +1,35 @@
+reviewed: true
+title: "Lesson 2 check"
+description: Three questions, one of each supported type.
+questions:
+  - question_type: multiple_choice_question
+    points_possible: 1
+    question_text: |
+      What does this return?
+
+      ```python
+      hello("Ada")
+      ```
+    answers:
+      - answer_text: '`"Hello, Ada & <friends>"`'
+        answer_weight: 100
+      - answer_text: '`None`'
+        answer_weight: 0
+  - question_type: true_false_question
+    points_possible: 1
+    question_text: Fenced code renders as preformatted text.
+    answers:
+      - answer_text: "True"
+        answer_weight: 100
+      - answer_text: "False"
+        answer_weight: 0
+  - question_type: multiple_answers_question
+    points_possible: 2
+    question_text: Which are lists?
+    answers:
+      - answer_text: "`[1, 2]`"
+        answer_weight: 100
+      - answer_text: "`list()`"
+        answer_weight: 100
+      - answer_text: "`(1, 2)`"
+        answer_weight: 0

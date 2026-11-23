@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# courses: courses as code for Canvas (SWM-203). Interface: SWM-205 comment.
+#   tools/courses/courses validate <course-folder>
+#   tools/courses/courses apply <course-folder> --target local|staging
+# Creates tools/courses/.venv on first use (and again when requirements.txt
+# changes), then runs `python -m courses` from tools/courses/src. Needs Python 3.11+.
+set -uo pipefail
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+venv="$here/.venv"
+
+py=""
+for c in python3.13 python3.12 python3.11 python3; do
+  if command -v "$c" >/dev/null 2>&1 && "$c" -c 'import sys; sys.exit(sys.version_info < (3, 11))' 2>/dev/null; then
+    py="$c"; break
+  fi
+done
+[ -n "$py" ] || { echo "courses: needs Python 3.11 or newer" >&2; exit 2; }
+
+hash_file() { if command -v sha256sum >/dev/null; then sha256sum "$1"; else shasum -a 256 "$1"; fi | cut -c1-64; }
+want="$(hash_file "$here/requirements.txt")"
+if [ ! -x "$venv/bin/python" ] || [ "$(cat "$venv/.requirements.sha256" 2>/dev/null)" != "$want" ]; then
+  echo "courses: setting up $venv" >&2
+  { "$py" -m venv "$venv" && "$venv/bin/pip" install -q --disable-pip-version-check -r "$here/requirements.txt"; } >&2 \
+    || { echo "courses: could not set up $venv" >&2; exit 2; }
+  echo "$want" > "$venv/.requirements.sha256"
+fi
+
+PYTHONPATH="$here/src${PYTHONPATH:+:$PYTHONPATH}" exec "$venv/bin/python" -m courses "$@"
