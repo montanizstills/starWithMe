@@ -85,7 +85,7 @@ jobs:
       # the course, test student, modules, pages and quiz; the second must
       # report 0 changes. live_check.py then checks publishing, <pre> code and
       # the student's login. Uses the example course when it is on the branch.
-      - name: Apply a course twice and check it (SWM-205)
+      - name: Apply a course twice, check it, run the student test (SWM-205, SWM-226)
         run: |
           student_pw="$(openssl rand -hex 24)"
           echo "::add-mask::$student_pw"
@@ -104,6 +104,13 @@ jobs:
           jq '{summary, skipped}' apply-first.json apply-second.json
           jq -e '.changes == []' apply-second.json > /dev/null || { echo "second apply was not 0 changes"; exit 1; }
           tools/courses/.venv/bin/python tools/courses/tests/live_check.py "$course" apply-first.json
+          # SWM-226: the student test. The test student logs in, takes the example
+          # quiz and must score full marks. Needs the example course.
+          if [ "$course" = courses/example-playwright-browser-use ]; then
+            CANVAS_URL=http://localhost:3000 PLAYWRIGHT_DEPS=1 tests/e2e/run.sh
+          else
+            echo "::warning::example course not on this branch; student test not run"
+          fi
 
       - name: Stack logs on failure
         if: failure()
@@ -119,6 +126,7 @@ jobs:
             stack.log
             apply-first.json
             apply-second.json
+            tests/e2e/test-results
           if-no-files-found: ignore
 
       - name: Tear down

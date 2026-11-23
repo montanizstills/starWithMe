@@ -9,6 +9,7 @@ with the answer key from the course files and must score full marks.
   COURSE_DIR                course folder (default courses/example-playwright-browser-use)
 """
 import os
+import re
 from pathlib import Path
 
 import pytest
@@ -50,7 +51,10 @@ def log_in(page: Page, base_url: str, login: str) -> None:
     form.get_by_label("Email").fill(login)
     form.get_by_label("Password").fill(password)
     form.get_by_role("button", name="Log In").click()
-    expect(page, "login failed: check the test student's login and password").to_have_url(f"{base_url}/")
+    # Canvas lands on the dashboard, sometimes with a query such as ?login_success=1.
+    expect(page, "login failed: check the test student's login and password").to_have_url(
+        re.compile("^" + re.escape(base_url) + r"/(\?.*)?$")
+    )
 
 
 @pytest.fixture(scope="session")
