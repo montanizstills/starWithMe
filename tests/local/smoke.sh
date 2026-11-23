@@ -7,6 +7,10 @@
 #   tests/local/smoke.sh static     # repo + compose only, no containers needed
 #   tests/local/smoke.sh image      # built image only (CANVAS_IMAGE, or the local build)
 #   tests/local/smoke.sh runtime    # running stack only
+#
+# SMOKE_TARGET=staging runs the image and runtime sections against the staging
+# VM's stack (docker-compose.yml + docker-compose.cloud.yml), with CANVAS_URL
+# set to the Tailscale address. infra/oci/staging.sh smoke does this (SWM-38).
 
 set -uo pipefail
 
@@ -15,6 +19,12 @@ cd "$ROOT" || exit 2
 
 JOB_TIMEOUT="${JOB_TIMEOUT:-60}"
 CANVAS_URL="${CANVAS_URL:-http://localhost:3000}"
+SMOKE_TARGET="${SMOKE_TARGET:-local}"
+case "$SMOKE_TARGET" in
+  local) ;;
+  staging) export COMPOSE_FILE=docker-compose.yml:docker-compose.cloud.yml ;;
+  *) echo "SMOKE_TARGET must be local or staging" >&2; exit 2 ;;
+esac
 PASS=0
 FAIL=0
 FAILED=()
@@ -83,6 +93,17 @@ static_tests() {
   check "compose takes passwords only from env" sh -c "! grep -Eq '(POSTGRES_PASSWORD|ADMIN_PASSWORD): [^\$]' docker-compose.yml"
   check "database.yml password comes from env" grep -q 'password: <%= ENV.fetch("DB_PASSWORD") %>' Dockerfile
   check "start.sh offers --status" grep -q -- '--status)' start.sh
+
+  # SWM-39: the outdated Render blueprint is gone (staging is the Oracle VM)
+  check "no outdated render.yaml" test ! -e render.yaml
+  # SWM-201: only the cloud override hides error details; local keeps them
+  local base
+  base="$(docker compose -f docker-compose.yml config --format json 2>/dev/null)"
+  if [ -n "$base" ] && [ "$(jq -r '[.services.web, .services.jobs | .environment.SHOW_PRODUCTION_ERRORS // "unset"] | join(",")' <<<"$base")" = "unset,unset" ]; then
+    pass "local compose keeps detailed error pages (SHOW_PRODUCTION_ERRORS unset)"
+  else
+    fail "local compose keeps detailed error pages (SHOW_PRODUCTION_ERRORS unset)"
+  fi
 }
 
 image_tests() {
@@ -148,7 +169,17 @@ runtime_tests() {
 
   local db_port
   db_port="$(dc port db 5432 2>/dev/null)"
-  if [[ "$db_port" == 127.0.0.1:* ]] && nc -z 127.0.0.1 "${db_port##*:}" 2>/dev/null; then
+  if [ "$SMOKE_TARGET" = staging ]; then
+    # Staging publishes no db or redis port at all (docker-compose.cloud.yml)
+    # `docker compose port` prints ":0" (or nothing) for a port with no host binding
+    local redis_port
+    redis_port="$(dc port redis 6379 2>/dev/null)"
+    if [[ ! "$db_port" =~ :[1-9][0-9]*$ ]] && [[ ! "$redis_port" =~ :[1-9][0-9]*$ ]]; then
+      pass "db and redis publish no host port (staging)"
+    else
+      fail "db and redis publish no host port (staging)" "db: ${db_port:-none}, redis: ${redis_port:-none}"
+    fi
+  elif [[ "$db_port" == 127.0.0.1:* ]] && nc -z 127.0.0.1 "${db_port##*:}" 2>/dev/null; then
     pass "db reachable from host on localhost only ($db_port)"
   else
     fail "db reachable from host on localhost only" "got: ${db_port:-not published}"
@@ -172,6 +203,24 @@ runtime_tests() {
   local code
   code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 "$CANVAS_URL/login/canvas")"
   if [ "$code" = 200 ]; then pass "web serves /login/canvas (200)"; else fail "web serves /login/canvas (200)" "got HTTP $code"; fi
+
+  # SWM-201: a made-up course id. Staging (SHOW_PRODUCTION_ERRORS=true) must
+  # answer with the generic error page; local keeps the detailed one.
+  local resp err_code leaks
+  resp="$(curl -s -m 60 -w '\n%{http_code}' "$CANVAS_URL/courses/987654321" || true)"
+  err_code="${resp##*$'\n'}"; resp="${resp%$'\n'*}"
+  leaks="$(grep -ciE 'backtrace|stack trace|application trace|full trace|rails\.root|recordnotfound|\.rb:[0-9]' <<<"$resp" || true)"
+  if [ "$SMOKE_TARGET" = staging ]; then
+    if [[ "$err_code" =~ ^[45] ]] && [ -n "$resp" ] && [ "$leaks" = 0 ]; then
+      pass "unknown course shows the generic error page (HTTP $err_code, 0 trace lines)"
+    else
+      fail "unknown course shows the generic error page" "HTTP $err_code, ${#resp} bytes, $leaks trace lines"
+    fi
+  elif [ "${leaks:-0}" -gt 0 ]; then
+    pass "unknown course shows the detailed error page locally (HTTP $err_code)"
+  else
+    fail "unknown course shows the detailed error page locally" "HTTP $err_code, ${#resp} bytes, no trace lines"
+  fi
 
   local status_out
   status_out="$(STATUS_LOG="$(mktemp)" tests/local/status.sh 2>&1)"
