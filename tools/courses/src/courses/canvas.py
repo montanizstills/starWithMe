@@ -92,7 +92,7 @@ class Canvas:
                 payload = e.read()
                 where = f"{method} {redact(urllib.parse.urlsplit(url).path)}"
                 if e.code in (401, 403):
-                    raise ConfigError(f"Canvas refused the token ({e.code}) on {where}: is CANVAS_API_TOKEN a site admin token for {self.base}?") from None
+                    raise ConfigError(f"Canvas refused the token ({e.code}) on {where}: {_short(payload)}. Is CANVAS_API_TOKEN a site admin token for {self.base}?") from None
                 if e.code == 404:
                     raise NotFound(f"{where}: not found") from None
                 if e.code in (429, 502, 503, 504) and attempt < self.retries:

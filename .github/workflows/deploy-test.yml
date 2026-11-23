@@ -122,11 +122,13 @@ jobs:
             token = user.access_tokens.create!(purpose: "deploy-test courses apply", developer_key: key)
             found = AccessToken.authenticate(token.full_token)
             warn "developer key check: key=#{key.id} state=#{key.workflow_state} token_found=#{!found.nil?} usable=#{found&.usable?.inspect} default=#{DeveloperKey.default(create_if_missing: false)&.id.inspect}"
+            warn "developer key shards: current=#{Shard.current.id.inspect} default=#{Shard.default.id.inspect} birth=#{Shard.birth.id.inspect} shards=#{Shard.count} site_admin=#{Account.site_admin.id}/#{Account.site_admin.global_id} key_root=#{key.root_account_id}"
             puts "TOKEN=#{token.full_token}"
           ' 2>runner.err | sed -n 's/^TOKEN=//p' | tail -1)"
           [ -n "$token" ] || { echo "Could not create an API token:"; grep -v "^[[:space:]]*from " runner.err | head -20; exit 1; }
           echo "::add-mask::$token"
           grep -iE "sis imports|developer key" runner.err || true
+          echo "API check: $(curl -s -H "Authorization: Bearer $token" http://localhost:3000/api/v1/users/self | head -c 300)"
           export CANVAS_API_TOKEN="$token" TEST_STUDENT_PASSWORD="$student_pw"
           course=tools/courses/tests/fixtures/mini-course
           [ -d courses/example-playwright-browser-use ] && course=courses/example-playwright-browser-use
