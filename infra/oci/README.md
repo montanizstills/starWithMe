@@ -90,7 +90,7 @@ bash <(curl -fsSL $R/staging.sh) smoke   [ref]               # smoke tests on th
 
 The first `deploy` sets up the database and can take up to 30 minutes. `check` prints the setup proof to paste into Jira: Oracle metadata, memory, Docker and Tailscale versions, `.env` names only, containers, the health check and listening ports.
 
-From your Mac, `bash <(curl -fsSL $R/staging-proof.sh) <VM public IP>` runs `smoke` on the VM over SSH, then probes the public IP from outside: only 22 may answer. The IP is masked in the output.
+From your Mac, `./start.sh --stage-check <VM public IP>` (or `bash <(curl -fsSL $R/staging-proof.sh) <VM public IP>` without a checkout) runs `smoke` on the VM over SSH, then probes the public IP from outside: only 22 may answer. The IP is masked in the output.
 
 To test from your own Mac or phone over Tailscale, see the [Private staging testing over Tailscale runbook](https://star-with-me.atlassian.net/wiki/spaces/STARWITHME/pages/6193153).
 
