@@ -1,0 +1,37 @@
+# Unit tests for the courses tool (SWM-204, SWM-205): schema, validate, and
+# apply against an in-memory fake Canvas. No secrets, no Canvas server; the
+# real-Canvas check is a step in deploy-test.
+name: courses-tool
+
+on:
+  pull_request:
+    branches: [dev]
+    paths:
+      - "tools/courses/**"
+      - "courses/**"
+      - ".github/workflows/courses-tool.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Unit tests
+        run: |
+          python -m venv tools/courses/.venv
+          tools/courses/.venv/bin/pip install -q -r tools/courses/requirements-dev.txt
+          tools/courses/.venv/bin/python -m pytest -q tools/courses/tests
+      - name: Validate every course folder
+        run: |
+          for d in courses/*/ tools/courses/tests/fixtures/*/; do
+            [ -d "$d" ] || continue
+            tools/courses/courses validate "$d" > /dev/null
+          done
