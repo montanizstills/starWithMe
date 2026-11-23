@@ -111,12 +111,15 @@ jobs:
             key = DeveloperKey.default(create_if_missing: false) || DeveloperKey.find_by(name: "User-Generated")
             # Turn the key on for the accounts the API is called on; a key that is
             # off for the account makes Canvas answer 401 for its tokens.
+            # Saving a binding through the model hits the same global-id foreign key
+            # error, so write the rows directly with local ids.
             [Account.site_admin, Account.default].each do |acct|
-              b = DeveloperKeyAccountBinding.find_or_initialize_by(account_id: acct.id, developer_key_id: key.id)
-              b.workflow_state = "on"
-              b.save!(validate: false)
+              now = Time.now.utc
+              DeveloperKeyAccountBinding.where(account_id: acct.local_id, developer_key_id: key.local_id).delete_all
+              DeveloperKeyAccountBinding.insert_all!([{account_id: acct.local_id, developer_key_id: key.local_id,
+                workflow_state: "on", root_account_id: acct.local_id, created_at: now, updated_at: now}])
             rescue => e
-              warn "developer key binding for #{acct.name}: #{e.class}: #{e.message}"
+              warn "developer key binding for #{acct.name}: #{e.class}: #{e.message.lines.first}"
             end
             user = Pseudonym.active.find_by!(unique_id: ENV.fetch("CANVAS_LMS_ADMIN_EMAIL")).user
             token = user.access_tokens.create!(purpose: "deploy-test courses apply", developer_key: key)
