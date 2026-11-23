@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # Step 7 of SWM-202: put the repo on the staging VM and write its .env.
 # Run ON the VM as the ubuntu user, after bootstrap-vm.sh and the GHCR login:
-#   bash <(curl -fsSL <raw URL of this file>)
+#   bash <(curl -fsSL <raw URL of this file>) admin@example.com
+# The argument is the Canvas admin email for staging (a new login). If it is
+# left out, the script asks for it.
 # Clones the repo to ~/starWithMe if it isn't there, then writes .env with new
 # random passwords. Nothing secret is printed; at the end it shows only the
 # variable names. Safe to re-run: an existing .env is never overwritten.
@@ -31,8 +33,11 @@ else
   [ -n "$ts_ip" ] || { echo "Tailscale has no IPv4 address yet. Run 'sudo tailscale up' first." >&2; exit 1; }
 
   # Read from the terminal, so this also works when the script itself comes from a pipe
-  read -rp "Canvas admin email (a new login for staging): " admin_email </dev/tty
-  [ -n "$admin_email" ] || { echo "An email is required." >&2; exit 1; }
+  admin_email=${1:-}
+  if [ -z "$admin_email" ]; then
+    read -rp "Canvas admin email (a new login for staging): " admin_email </dev/tty || true
+  fi
+  [[ "$admin_email" == *@*.* ]] || { echo "Give the admin email as the argument, for example: bash <(curl ...) you@example.com" >&2; exit 1; }
 
   echo "== Writing .env (mode 600)"
   umask 077
