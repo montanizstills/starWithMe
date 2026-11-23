@@ -1,0 +1,5 @@
+# Same Playwright pins as the example course exercises (SWM-198).
+playwright==1.64.1
+pytest-playwright==0.10.0
+# Reads the quiz answer key from the course files. New dependency: needs the human's OK.
+PyYAML==6.0.2

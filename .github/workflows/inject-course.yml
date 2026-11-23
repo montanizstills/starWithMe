@@ -1,0 +1,133 @@
+# Add a course and its test student to private staging on demand (SWM-223).
+# Runs the courses tool (SWM-205) on the GitHub runner against Canvas on the VM,
+# reached over Tailscale. Safe to re-run: a second apply reports 0 changes.
+#
+# No long-lived Canvas token is stored anywhere: each run mints a one-run
+# admin API token inside the VM's web container (replacing the previous one),
+# masks it, and deletes it at the end. The test student's password comes from
+# the `staging` environment secret TEST_STUDENT_PASSWORD.
+name: inject-course
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Branch, tag or commit to take the course files and tool from
+        required: true
+        default: dev
+      course:
+        description: Course folder
+        required: true
+        default: courses/example-playwright-browser-use
+      check_rerun:
+        description: Apply a second time and fail unless it reports 0 changes
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: inject-course
+  cancel-in-progress: false
+
+jobs:
+  inject:
+    runs-on: ubuntu-latest
+    environment: staging
+    timeout-minutes: 30
+    env:
+      COURSE: ${{ inputs.course }}
+      STAGING_HOST: ${{ secrets.STAGING_HOST }}
+      STAGING_USER: ${{ vars.STAGING_USER || 'ubuntu' }}
+      STAGING_DIR: ${{ vars.STAGING_DIR || 'starWithMe' }}
+      TOKEN_PURPOSE: starWithMe staging (inject-course workflow)
+    steps:
+      - name: Check inputs
+        run: |
+          [[ "$COURSE" =~ ^courses/[A-Za-z0-9._-]+$ ]] || { echo "Course must be a folder under courses/: $COURSE"; exit 1; }
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Validate the course files
+        run: tools/courses/courses validate "$COURSE"
+
+      - name: Join the tailnet
+        uses: tailscale/github-action@v3
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+
+      - name: Set up SSH
+        env:
+          STAGING_SSH_KEY: ${{ secrets.STAGING_SSH_KEY }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$STAGING_SSH_KEY" > ~/.ssh/staging
+          chmod 600 ~/.ssh/staging
+          printf 'Host staging\n  HostName %s\n  User %s\n  IdentityFile ~/.ssh/staging\n  StrictHostKeyChecking accept-new\n' \
+            "$STAGING_HOST" "$STAGING_USER" > ~/.ssh/config
+
+      - name: Check Canvas is up
+        run: |
+          code=$(curl -s -o /dev/null -m 15 -w '%{http_code}' "http://$STAGING_HOST:3000/health_check" || true)
+          [ "$code" = 200 ] || { echo "Canvas on staging is not healthy (HTTP $code). Run deploy-staging first."; exit 1; }
+
+      # One-time setting on a fresh Canvas (SIS imports are off by default), and a
+      # fresh token for this run. The token is masked before anything else runs.
+      - name: Prepare Canvas and mint a run token
+        run: |
+          # tools/canvas-token.rb (from the checked-out ref) also sets up Canvas's
+          # default developer key, without which tokens are refused with 401 on this image.
+          out=$(ssh staging "cd '$STAGING_DIR' && docker compose -f docker-compose.yml -f docker-compose.cloud.yml exec -T -e TOKEN_PURPOSE='$TOKEN_PURPOSE' web bundle exec rails runner \"\$(cat)\" 2>/dev/null" < tools/canvas-token.rb) \
+            || { echo "Could not reach the web container on staging"; exit 1; }
+          token=$(sed -n 's/^TOKEN=//p' <<<"$out" | tail -1)
+          unset out
+          [ -n "$token" ] || { echo "No token returned"; exit 1; }
+          echo "::add-mask::$token"
+          echo "CANVAS_API_TOKEN=$token" >> "$GITHUB_ENV"
+          echo "Token ready (masked); SIS imports enabled"
+
+      - name: Apply the course
+        env:
+          CANVAS_URL: http://${{ secrets.STAGING_HOST }}:3000
+          TEST_STUDENT_PASSWORD: ${{ secrets.TEST_STUDENT_PASSWORD }}
+        run: |
+          tools/courses/courses apply "$COURSE" --target staging > apply-report.json
+          python -m json.tool apply-report.json
+
+      - name: Apply again (must report 0 changes)
+        if: inputs.check_rerun
+        env:
+          CANVAS_URL: http://${{ secrets.STAGING_HOST }}:3000
+          TEST_STUDENT_PASSWORD: ${{ secrets.TEST_STUDENT_PASSWORD }}
+        run: |
+          tools/courses/courses apply "$COURSE" --target staging > apply-report-rerun.json
+          python - <<'PY'
+          import json, sys
+          r = json.load(open("apply-report-rerun.json"))
+          print(json.dumps(r["summary"]))
+          sys.exit(1 if r["changes"] else 0)
+          PY
+
+      - name: Upload the reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: apply-reports
+          path: apply-report*.json
+          if-no-files-found: ignore
+
+      - name: Delete the run token
+        if: always()
+        run: |
+          ssh staging "cd '$STAGING_DIR' && docker compose -f docker-compose.yml -f docker-compose.cloud.yml exec -T -e PURPOSE='$TOKEN_PURPOSE' web bundle exec rails runner '
+            AccessToken.active.where(purpose: ENV.fetch(\"PURPOSE\")).each(&:destroy)
+          '" >/dev/null 2>&1 || echo "Could not delete the run token; delete it in Canvas (purpose: $TOKEN_PURPOSE)"

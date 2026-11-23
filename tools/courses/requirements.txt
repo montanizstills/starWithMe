@@ -1,0 +1,4 @@
+# courses tool runtime dependencies (SWM-204/205). New dependencies need the human's OK (C5).
+PyYAML==6.0.2
+Markdown==3.11.3
+jsonschema==4.26.0
