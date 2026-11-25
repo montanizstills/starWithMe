@@ -3,7 +3,7 @@
 # image is pulled from GHCR when one is published for this Dockerfile and
 # entrypoint (SWM-229), and built here otherwise.
 # Branch protection requires this check before anything merges to dev (SWM-33).
-name: deploy-test
+name: "PR Regression: Full Stack and Student Quiz"
 
 on:
   pull_request:
@@ -20,6 +20,7 @@ concurrency:
 
 jobs:
   deploy-test:
+    name: "PR Regression: Full Stack and Student Quiz"
     runs-on: ubuntu-latest
     # Pulling takes minutes; building Canvas when no image is published takes 1-2 hours
     timeout-minutes: 180

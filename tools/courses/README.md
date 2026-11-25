@@ -64,4 +64,4 @@ tools/courses/.venv/bin/pip install -r tools/courses/requirements-dev.txt
 tools/courses/.venv/bin/python -m pytest -q tools/courses/tests
 ```
 
-The unit tests run `apply` against an in-memory fake Canvas (`tests/fake_canvas.py`). CI runs them in the `courses-tool` workflow. `deploy-test` applies a course twice against the real Canvas and runs `tests/live_check.py`.
+The unit tests run `apply` against an in-memory fake Canvas (`tests/fake_canvas.py`). CI runs them in the "PR Regression: Static and Unit" check (`quick.yml`). "PR Regression: Full Stack and Student Quiz" (`deploy-test.yml`) applies a course twice against the real Canvas and runs `tests/live_check.py`.
