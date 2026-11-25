@@ -12,6 +12,9 @@ Options:
   --codespace   Install Canvas inside a GitHub Codespace and start the Rails server
   --test        Run the local smoke tests against the running stack
   --status      Show each service's health and footprint (CPU, memory, disk, jobs)
+  --stage-check <VM public IP> [ref]
+                Prove staging from this machine: smoke tests on the VM over SSH,
+                then an outside port check (only 22 may answer). IP is masked.
   -h, --help    Show this help message
 
 Examples:
@@ -19,6 +22,7 @@ Examples:
   ./start.sh --codespace
   ./start.sh --test
   ./start.sh --status
+  ./start.sh --stage-check 203.0.113.10
 EOF
 }
 
@@ -44,6 +48,10 @@ case "$1" in
     ;;
   --status)
     exec tests/local/status.sh
+    ;;
+  --stage-check)
+    # SWM-10: the staging proof from SWM-38 (infra/oci/staging-proof.sh)
+    exec infra/oci/staging-proof.sh "${@:2}"
     ;;
   -h|--help)
     usage

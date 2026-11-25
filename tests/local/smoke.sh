@@ -93,6 +93,8 @@ static_tests() {
   check "compose takes passwords only from env" sh -c "! grep -Eq '(POSTGRES_PASSWORD|ADMIN_PASSWORD): [^\$]' docker-compose.yml"
   check "database.yml password comes from env" grep -q 'password: <%= ENV.fetch("DB_PASSWORD") %>' Dockerfile
   check "start.sh offers --status" grep -q -- '--status)' start.sh
+  check "start.sh offers --stage-check (SWM-10)" sh -c "grep -q -- '--stage-check)' start.sh && grep -q 'exec infra/oci/staging-proof.sh' start.sh && test -x infra/oci/staging-proof.sh"
+  check "start.sh --stage-check rejects a missing IP" sh -c "./start.sh --stage-check >/dev/null 2>&1; [ \$? = 2 ]"
 
   # SWM-39: the outdated Render blueprint is gone (staging is the Oracle VM)
   check "no outdated render.yaml" test ! -e render.yaml
