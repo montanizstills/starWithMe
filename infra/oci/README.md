@@ -8,7 +8,7 @@ Base URL for every script below (the repo is public, so no token is needed):
 R=https://raw.githubusercontent.com/montanizstills/starWithMe/dev/infra/oci
 ```
 
-Jira: [SWM-36](https://star-with-me.atlassian.net/browse/SWM-36) (the VM), [SWM-202](https://star-with-me.atlassian.net/browse/SWM-202) (staging setup). The full runbooks, with the secret inventory and rotation dates, live on Confluence: [Staging runbook (manual)](https://star-with-me.atlassian.net/wiki/spaces/STARWITHME/pages/6094850) and [Secrets and token rotation runbook](https://star-with-me.atlassian.net/wiki/spaces/STARWITHME/pages/4489217/Secrets+and+token+rotation+runbook). Secret values never go in this repo.
+Jira: [SWM-36](https://star-with-me.atlassian.net/browse/SWM-36) (the VM), [SWM-202](https://star-with-me.atlassian.net/browse/SWM-202) (staging setup). The full runbooks, with the secret inventory and rotation dates, live on Confluence: [Staging runbook](https://star-with-me.atlassian.net/wiki/spaces/STARWITHME/pages/6094850) and [Secrets and token rotation runbook](https://star-with-me.atlassian.net/wiki/spaces/STARWITHME/pages/4489217/Secrets+and+token+rotation+runbook). Secret values never go in this repo.
 
 ## Where each script runs
 
@@ -92,7 +92,7 @@ The first `deploy` sets up the database and can take up to 30 minutes. `check` p
 
 From your Mac, `./start.sh --stage-check <VM public IP>` (or `bash <(curl -fsSL $R/staging-proof.sh) <VM public IP>` without a checkout) runs `smoke` on the VM over SSH, then probes the public IP from outside: only 22 may answer. The IP is masked in the output.
 
-To test from your own Mac or phone over Tailscale, see the [Private staging testing over Tailscale runbook](https://star-with-me.atlassian.net/wiki/spaces/STARWITHME/pages/6193153).
+To test from your own Mac or phone over Tailscale, see sections 4 to 7 of the [Staging runbook](https://star-with-me.atlassian.net/wiki/spaces/STARWITHME/pages/6094850).
 
 ## If the VM goes down
 
