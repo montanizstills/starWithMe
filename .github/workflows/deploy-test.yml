@@ -123,7 +123,7 @@ jobs:
           grep -q "Example course applied: 0 change(s)." <<<"$out"
           grep -c '^CANVAS_API_TOKEN=.' .env
 
-      # SWM-228: ./start.sh --rotate-admin-password against the real Canvas. It
+      # SWM-228: tools/rotate-admin-password.sh against the real Canvas. It
       # prints nothing; the old password and token stop working, the new ones
       # work (a real login form post), and the start.sh hook still applies the
       # course. Passwords go to curl from files, never on its command line.
@@ -132,7 +132,7 @@ jobs:
           old_token="$(sed -n 's/^CANVAS_API_TOKEN=//p' .env)"
           umask 077; mkdir -p rot
           sed -n 's/^CANVAS_ADMIN_PASSWORD=//p' .env | tr -d '\n' > rot/old
-          rc=0; out="$(./start.sh --rotate-admin-password 2>&1)" || rc=$?
+          rc=0; out="$(tools/rotate-admin-password.sh 2>&1)" || rc=$?
           sed -n 's/^CANVAS_ADMIN_PASSWORD=//p' .env | tr -d '\n' > rot/new
           echo "::add-mask::$(cat rot/new)"
           echo "::add-mask::$(sed -n 's/^CANVAS_API_TOKEN=//p' .env)"

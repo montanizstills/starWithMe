@@ -1,7 +1,12 @@
 #!/usr/bin/env bash
 # Rotate the local Canvas site admin's password (SWM-228).
 #
-#   ./start.sh --rotate-admin-password
+#   tools/rotate-admin-password.sh
+#
+# Local only, on purpose. It is not a start.sh option, it is kept out of the
+# Docker build context (.dockerignore), and it refuses to run against the
+# staging stack (WEB_BIND in .env or docker-compose.cloud.yml in COMPOSE_FILE).
+# Staging secrets rotate through the GitHub staging environment (SWM-239).
 #
 # Makes a new random password, sets it on the admin in the running Canvas,
 # checks that it works and the old one no longer does, then writes it to
@@ -25,6 +30,10 @@ TOKEN_PURPOSE="starWithMe local (courses)"   # same as tools/apply-example-cours
 err() { echo "rotate-admin-password: $*" >&2; }
 
 [ -f .env ] || { err "no .env in $(pwd); copy .env.example to .env first."; exit 2; }
+if grep -q '^WEB_BIND=' .env || [[ "${COMPOSE_FILE:-}" == *cloud* ]]; then
+  err "this is the staging stack; this tool is for the local Canvas only. Staging secrets rotate via SWM-239."
+  exit 2
+fi
 grep -q '^CANVAS_ADMIN_PASSWORD=' .env || { err "CANVAS_ADMIN_PASSWORD is not in .env."; exit 2; }
 command -v openssl >/dev/null || { err "openssl is not installed."; exit 2; }
 if [ -z "$(docker compose ps web --status running -q 2>/dev/null)" ]; then

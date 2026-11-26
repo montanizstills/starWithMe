@@ -51,14 +51,13 @@ chmod +x "$work/bin/docker"
 setup() {
   local d="$work/$1"
   mkdir -p "$d/tools" "$d/fake"
-  cp "$ROOT/start.sh" "$d/"
   cp "$ROOT/tools/rotate-admin-password.sh" "$ROOT/tools/canvas-admin-password.rb" "$ROOT/tools/canvas-token.rb" "$d/tools/"
   printf 'POSTGRES_PASSWORD=db-secret\nCANVAS_ADMIN_EMAIL=admin@example.test\nCANVAS_ADMIN_PASSWORD=old-default-pw\n# a comment\nCANVAS_API_TOKEN=old-token\nTEST_STUDENT_PASSWORD=student-pw' > "$d/.env"
   printf 'old-default-pw' > "$d/fake/canvas_pw"
   touch "$d/fake/running"
   echo "$d"
 }
-run() { (cd "$1" && PATH="$work/bin:$PATH" FAKE="$1/fake" ./start.sh --rotate-admin-password > "$1/out" 2>&1); echo $? > "$1/rc"; }
+run() { (cd "$1" && PATH="$work/bin:$PATH" FAKE="$1/fake" tools/rotate-admin-password.sh > "$1/out" 2>&1); echo $? > "$1/rc"; }
 envval() { sed -n "s/^$2=//p" "$1/.env"; }
 
 echo "rotate: happy path"
@@ -101,9 +100,22 @@ t "exits 4" [ "$(cat "$d/rc")" = 4 ]
 t "password still rotated in Canvas and .env" [ "$(cat "$d/fake/canvas_pw")" = "$(envval "$d" CANVAS_ADMIN_PASSWORD)" ]
 t "stale token dropped, so start.sh makes a new one" bash -c "! grep -q '^CANVAS_API_TOKEN=' '$d/.env'"
 
+echo "rotate: refuses the staging stack"
+d=$(setup staging); printf '\nWEB_BIND=100.64.0.1\n' >> "$d/.env"; cp "$d/.env" "$d/env.before"; run "$d"
+t "exits 2 with WEB_BIND in .env" [ "$(cat "$d/rc")" = 2 ]
+t ".env unchanged" cmp -s "$d/.env" "$d/env.before"
+t "Canvas not touched" [ "$(cat "$d/fake/canvas_pw")" = old-default-pw ]
+d=$(setup cloud); (cd "$d" && PATH="$work/bin:$PATH" FAKE="$d/fake" COMPOSE_FILE=docker-compose.yml:docker-compose.cloud.yml tools/rotate-admin-password.sh >/dev/null 2>&1); rc=$?
+t "exits 2 with the cloud compose file" [ "$rc" = 2 ]
+t "Canvas not touched" [ "$(cat "$d/fake/canvas_pw")" = old-default-pw ]
+
+echo "rotate: stays local only"
+t "start.sh has no rotate option" bash -c "! grep -qi rotate '$ROOT/start.sh'"
+t ".dockerignore keeps it out of builds" bash -c "grep -qx 'tools/rotate-admin-password.sh' '$ROOT/.dockerignore' && grep -qx 'tools/canvas-admin-password.rb' '$ROOT/.dockerignore'"
+
 echo "rotate: canvas-admin-password.rb"
 if command -v ruby >/dev/null; then
-  t "ruby syntax ok" ruby -c "$ROOT/tools/canvas-admin-password.rb" >/dev/null
+  t "ruby syntax ok" bash -c "ruby -c '$ROOT/tools/canvas-admin-password.rb' >/dev/null"
 else
   echo "  skip ruby not installed"
 fi
