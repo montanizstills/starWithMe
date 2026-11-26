@@ -39,6 +39,17 @@ if [ "$(sysctl -n net.ipv4.ip_nonlocal_bind)" != 1 ]; then
 fi
 sudo systemctl enable -q docker tailscaled
 
+# rpcbind (port 111, listening on every interface) only serves old RPC programs:
+# NFSv2/v3 and NIS. Staging and prod use neither; shared uploads across servers
+# would go to object storage over HTTPS, and NFSv4 doesn't need rpcbind anyway.
+# Masking keeps a package such as nfs-common from starting it again.
+# Undo: sudo systemctl unmask rpcbind.socket rpcbind.service && sudo systemctl enable --now rpcbind.socket
+if systemctl list-unit-files --no-legend 'rpcbind*' 2>/dev/null | grep -q .; then
+  echo "== Turning off rpcbind (port 111)"
+  sudo systemctl disable --now -q rpcbind.socket rpcbind.service 2>/dev/null || true
+  sudo systemctl mask -q rpcbind.socket rpcbind.service
+fi
+
 echo "== Starting Tailscale (open the link it prints and sign in with the same account as your Mac and phone)"
 sudo tailscale up --ssh=false || true
 

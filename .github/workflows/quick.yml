@@ -36,6 +36,9 @@ jobs:
           printf 'POSTGRES_PASSWORD=x\nCANVAS_ADMIN_EMAIL=ci@example.test\nCANVAS_ADMIN_PASSWORD=x\n' > .env
           tests/local/smoke.sh static
 
+      - name: Staging VM hardening (rpcbind off, reboot-safe bind)
+        run: tests/infra/hardening.sh
+
       - name: shellcheck (warnings and errors)
         run: |
           shellcheck --version | head -2
