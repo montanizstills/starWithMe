@@ -55,7 +55,7 @@ It retries every availability domain until A1 capacity frees up, and stops if `s
 bash <(curl -fsSL $R/bootstrap-vm.sh)
 ```
 
-Installs Docker with compose, Tailscale and an 8 GB swap file, then starts Tailscale. Open the link it prints and sign in. Log out and back in so the `docker` group applies.
+Installs Docker with compose, Tailscale and an 8 GB swap file, makes the Tailscale-only bind survive reboots, turns off rpcbind (port 111, unused: no NFS or NIS), then starts Tailscale. Open the link it prints and sign in. Log out and back in so the `docker` group applies.
 
 **3. Log in to GHCR** (on the VM, by hand). `docker login ghcr.io -u montanizstills --password-stdin`, then paste the token from step B and press Ctrl-D. The token is read from stdin, so it isn't saved in shell history.
 

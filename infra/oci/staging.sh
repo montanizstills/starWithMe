@@ -159,6 +159,11 @@ case "$cmd" in
     curl -s -m 15 "$CANVAS_URL/no-such-page-swm" | grep -ciE 'backtrace|stack trace|\.rb:[0-9]' || true
     echo "== Ports listening on all interfaces (expect only 22, and Tailscale's own)"
     sudo ss -ltnH | awk '{print $4}' | grep -E '^(0\.0\.0\.0|\*|\[::\]):' | sort -u
+    echo "== rpcbind (expect masked, and nothing on port 111)"
+    echo "  $(systemctl is-enabled rpcbind.socket 2>/dev/null || echo not-installed)"
+    if sudo ss -ltnH | awk '{print $4}' | grep -qE ':111$'; then
+      echo "  WARNING: port 111 is listening. Re-run bootstrap-vm.sh to turn rpcbind off."
+    fi
     ;;
 
   *)
