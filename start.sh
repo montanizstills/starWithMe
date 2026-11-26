@@ -15,6 +15,9 @@ Options:
   --stage-check <VM public IP> [ref]
                 Prove staging from this machine: smoke tests on the VM over SSH,
                 then an outside port check (only 22 may answer). IP is masked.
+  --rotate-admin-password
+                Give the local Canvas admin a new random password, kept only in
+                .env, and remake the admin API token. Prints nothing.
   -h, --help    Show this help message
 
 Examples:
@@ -23,6 +26,7 @@ Examples:
   ./start.sh --test
   ./start.sh --status
   ./start.sh --stage-check 203.0.113.10
+  ./start.sh --rotate-admin-password
 EOF
 }
 
@@ -52,6 +56,10 @@ case "$1" in
   --stage-check)
     # SWM-10: the staging proof from SWM-38 (infra/oci/staging-proof.sh)
     exec infra/oci/staging-proof.sh "${@:2}"
+    ;;
+  --rotate-admin-password)
+    # SWM-228: Canvas must be running (./start.sh --local)
+    exec tools/rotate-admin-password.sh
     ;;
   -h|--help)
     usage

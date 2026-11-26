@@ -51,6 +51,8 @@ log.txt
 
 ## Local secrets (never commit)
 .env
+# tools/rotate-admin-password.sh's scratch copy of .env
+.env.rotate.*
 
 ## courses tool (tools/courses): its virtualenv and Python caches
 tools/courses/.venv/
