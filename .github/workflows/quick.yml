@@ -41,6 +41,9 @@ jobs:
           shellcheck --version | head -2
           git ls-files -z '*.sh' | xargs -0 shellcheck -S warning
 
+      - name: rotate-admin-password with a fake Canvas (SWM-228)
+        run: tests/local/rotate-admin-password.test.sh
+
       - name: courses tool unit tests (SWM-204, SWM-205)
         run: |
           python -m venv tools/courses/.venv

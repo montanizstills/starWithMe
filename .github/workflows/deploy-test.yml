@@ -123,6 +123,45 @@ jobs:
           grep -q "Example course applied: 0 change(s)." <<<"$out"
           grep -c '^CANVAS_API_TOKEN=.' .env
 
+      # SWM-228: tools/rotate-admin-password.sh against the real Canvas. It
+      # prints nothing; the old password and token stop working, the new ones
+      # work (a real login form post), and the start.sh hook still applies the
+      # course. Passwords go to curl from files, never on its command line.
+      - name: Rotate the admin password (SWM-228)
+        run: |
+          old_token="$(sed -n 's/^CANVAS_API_TOKEN=//p' .env)"
+          umask 077; mkdir -p rot
+          sed -n 's/^CANVAS_ADMIN_PASSWORD=//p' .env | tr -d '\n' > rot/old
+          rc=0; out="$(tools/rotate-admin-password.sh 2>&1)" || rc=$?
+          sed -n 's/^CANVAS_ADMIN_PASSWORD=//p' .env | tr -d '\n' > rot/new
+          echo "::add-mask::$(cat rot/new)"
+          echo "::add-mask::$(sed -n 's/^CANVAS_API_TOKEN=//p' .env)"
+          [ "$rc" = 0 ] || { echo "rotate exited $rc: $out"; exit 1; }
+          [ -z "$out" ] || { echo "rotate printed output"; exit 1; }
+          ! cmp -s rot/old rot/new || { echo ".env password did not change"; exit 1; }
+          # Canvas login form: 302 to the dashboard when the password is right
+          login() {
+            rm -f rot/jar
+            auth="$(curl -s -c rot/jar http://localhost:3000/login/canvas | sed -n 's/.*name="authenticity_token" value="\([^"]*\)".*/\1/p' | head -1)"
+            curl -s -o /dev/null -w '%{http_code}' -b rot/jar -c rot/jar http://localhost:3000/login/canvas \
+              --data-urlencode "authenticity_token=$auth" \
+              --data-urlencode "pseudonym_session[unique_id]=ci-admin@example.test" \
+              --data-urlencode "pseudonym_session[password]@$1"
+          }
+          new_code="$(login rot/new)"; old_code="$(login rot/old)"
+          echo "login with new password: HTTP $new_code; with old: HTTP $old_code"
+          [ "$new_code" = 302 ] || { echo "new password does not log in"; exit 1; }
+          [ "$old_code" != 302 ] || { echo "old password still logs in"; exit 1; }
+          api() { curl -s -o /dev/null -w '%{http_code}' -K - http://localhost:3000/api/v1/users/self; }
+          old_api="$(printf 'header = "Authorization: Bearer %s"\n' "$old_token" | api)"
+          new_api="$(printf 'header = "Authorization: Bearer %s"\n' "$(sed -n 's/^CANVAS_API_TOKEN=//p' .env)" | api)"
+          echo "API with new token: HTTP $new_api; with old: HTTP $old_api"
+          [ "$new_api" = 200 ] && [ "$old_api" = 401 ] || { echo "token was not remade"; exit 1; }
+          out="$(tools/apply-example-course.sh 2>&1)"
+          echo "$out"
+          grep -q "Example course applied: 0 change(s)." <<<"$out"
+          rm -rf rot
+
       - name: Stack logs on failure
         if: failure()
         run: docker compose logs --no-color --tail 300 > stack.log 2>&1 || true

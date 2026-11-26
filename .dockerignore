@@ -25,3 +25,7 @@ target
 node_modules
 test-results
 playwright-report
+
+# Local-only admin tools: never in an image (SWM-228)
+tools/rotate-admin-password.sh
+tools/canvas-admin-password.rb
